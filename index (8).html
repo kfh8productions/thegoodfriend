@@ -1,0 +1,857 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>The Good Friend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap">
+<style>
+/* Layout: one shell, four surfaces (group chat, feed, blog, email), switched by tab.
+   Palette: warm charcoal ground, parchment ink, one muted gold accent.
+   Each surface keeps its own world: WhatsApp, Instagram, cream paper, Outlook. */
+:root {
+  color-scheme: dark;
+  --bg: #15130f;
+  --panel: #1e1b16;
+  --ink: #ece4d2;
+  --mute: #9d9583;
+  --line: #3a3429;
+  --gold: #c8a45e;
+  --rust: #a4593f;
+  --sage: #8ea291;
+  --slate: #7f8ea0;
+  --wa-bg: #0b141a;
+  --wa-in: #1f2c34;
+  --wa-out: #005c4b;
+  --paper: #f1e5c9;
+  --paper-ink: #2b2016;
+  --paper-mute: #7d6a4f;
+  --paper-rule: #cdb98e;
+  --paper-accent: #9c3d2e;
+  --serif: "Newsreader", Georgia, serif;
+  --sans: "DM Sans", system-ui, sans-serif;
+  --mono: "DM Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(900px 480px at 50% -200px, #2a241b, transparent 70%), var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font: 400 15px/1.55 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  min-height: 100vh;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.masthead { max-width: 560px; margin: 0 auto 24px; text-align: center; padding-top: 6px; }
+.title { font: 400 italic clamp(40px, 11vw, 64px)/1.05 var(--serif); letter-spacing: .005em; margin: 0; color: var(--ink); text-wrap: balance; }
+.title::after { content: ""; display: block; width: 48px; height: 1px; margin: 16px auto 0; background: var(--gold); }
+
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 560px; margin: 0 auto 26px; }
+.tab {
+  --c: var(--mute);
+  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  padding: 8px 16px; font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--mute); transition: background .2s, color .2s, border-color .2s;
+}
+.tab:hover { border-color: var(--c); color: var(--ink); }
+.tab[data-tab="chat"] { --c: var(--sage); }
+.tab[data-tab="feed"] { --c: var(--rust); }
+.tab[data-tab="essay"] { --c: var(--gold); }
+.tab[data-tab="mail"] { --c: var(--slate); }
+.tab[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #15130f; }
+
+.view { max-width: 560px; margin: 0 auto; }
+
+/* Group chat */
+.chat { background: var(--wa-bg); border-radius: 14px; padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; box-shadow: 0 20px 40px -26px rgba(0,0,0,.8); }
+.chat-head { display: flex; align-items: center; gap: 10px; padding: 0 2px 10px; border-bottom: 1px solid #1f2a31; margin-bottom: 6px; }
+.chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: #25d366; color: #0b141a; display: grid; place-items: center; font: 500 13px var(--mono); flex: none; }
+.chat-title { font-weight: 500; font-size: 15px; }
+.chat-sub { font-size: 12px; color: #8696a0; }
+.msg { max-width: 82%; padding: 7px 10px 5px; border-radius: 9px; background: var(--wa-in); font-size: 14px; line-height: 1.4; min-width: 0; overflow-wrap: anywhere; }
+.msg.r { align-self: flex-end; background: var(--wa-out); }
+.msg .who { display: block; font: 500 12px var(--sans); color: #53bdeb; margin-bottom: 2px; }
+.msg .time { display: block; text-align: right; font: 400 10px var(--mono); color: #8696a0; margin-top: 2px; }
+.msg .rx { display: inline-flex; gap: 6px; margin: 4px 0 0; padding: 1px 6px; border-radius: 999px; background: #0b141a; font-size: 12px; }
+.compose { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 8px 8px 14px; border-radius: 999px; background: #1f2c34; font-size: 14px; min-width: 0; }
+.compose .draft { flex: 1; min-width: 0; color: #e9edef; overflow-wrap: anywhere; }
+.compose .send { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #00a884; opacity: .35; }
+
+/* Instagram (dark mode, profile page) */
+.insta { background: #000; color: #f5f5f5; border: 1px solid #262626; border-radius: 12px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+.ig-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #262626; }
+.ig-user { font: 700 17px/1 var(--sans); display: flex; align-items: center; gap: 6px; }
+.ig-user .chev { font-size: 11px; color: #a8a8a8; }
+.ig-bar .ig-icons { color: #f5f5f5; font-size: 20px; letter-spacing: 14px; }
+.ig-top { display: flex; align-items: center; gap: 22px; padding: 18px 16px 10px; }
+.ig-ring { width: 86px; height: 86px; border-radius: 50%; padding: 3px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); flex: none; }
+.ig-ring span { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: #000; border: 3px solid #000; font: 700 24px var(--sans); color: #f5f5f5; }
+.ig-stats { display: flex; flex: 1; justify-content: space-around; text-align: center; min-width: 0; }
+.ig-stats div { font-size: 13px; color: #f5f5f5; }
+.ig-stats b { display: block; font-size: 16px; font-weight: 700; }
+.ig-name { padding: 0 16px; font: 600 14px/1.3 var(--sans); }
+.ig-name .sub { display: block; font-weight: 400; color: #a8a8a8; font-size: 13px; }
+.ig-btns { display: flex; gap: 6px; padding: 12px 16px 16px; }
+.ig-btns button { flex: 1; background: #262626; border: 0; border-radius: 8px; padding: 7px 0; font: 600 13px var(--sans); color: #f5f5f5; }
+.ig-tabs { display: flex; border-top: 1px solid #262626; }
+.ig-tabs span { flex: 1; text-align: center; padding: 12px 0; font: 600 12px var(--sans); letter-spacing: .08em; color: #f5f5f5; border-top: 1px solid #f5f5f5; margin-top: -1px; }
+.ig-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.ig-tile { aspect-ratio: 1; border: 0; padding: 0; min-width: 0; overflow: hidden; background: #111; display: block; }
+.ig-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ig-tile[aria-pressed="true"] { opacity: .65; }
+.ig-post { border-top: 1px solid #262626; margin-top: 3px; }
+.ig-post-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.ig-post-head .mini { width: 32px; height: 32px; border-radius: 50%; padding: 2px; background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); flex: none; }
+.ig-post-head .mini span { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; background: #000; font: 700 11px var(--sans); }
+.ig-post-head b { font-size: 13px; }
+.ig-post img { display: block; width: 100%; height: auto; max-height: 70vh; object-fit: contain; background: #000; }
+.ig-actions { display: flex; align-items: center; gap: 14px; padding: 10px 12px 4px; }
+.ig-actions svg { width: 24px; height: 24px; fill: none; stroke: #f5f5f5; stroke-width: 2; }
+.ig-body { padding: 4px 12px 14px; font-size: 14px; }
+.ig-body .likes { font-weight: 600; margin-bottom: 6px; }
+.ig-body .cap { margin: 0; }
+.ig-body .cap b { margin-right: 6px; }
+
+/* Blog: a poetry page on creamy paper */
+.essay { background: var(--paper); color: var(--paper-ink); border-radius: 4px; padding: 26px 24px 32px; min-width: 0; box-shadow: 0 22px 40px -24px rgba(0,0,0,.75); }
+.paper-head { text-align: center; padding-bottom: 14px; border-bottom: 3px double var(--paper-rule); }
+.paper-head .pub { font: 400 italic clamp(40px, 11vw, 58px)/1 var(--serif); color: var(--paper-ink); }
+.paper-head .by { font: 400 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--paper-mute); margin-top: 10px; }
+
+.pager { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+.pager button {
+  background: none; border: 1px solid var(--paper-rule); border-radius: 999px;
+  padding: 6px 14px 6px 8px; display: inline-flex; align-items: center; gap: 8px;
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--paper-mute);
+}
+.pager .num { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--paper-rule); color: var(--paper-ink); font: 400 italic 14px/1 var(--serif); }
+.pager button[aria-selected="true"] { background: var(--paper-ink); border-color: var(--paper-ink); color: var(--paper); }
+.pager button[aria-selected="true"] .num { background: var(--paper); color: var(--paper-ink); }
+
+.page { padding-top: 14px; }
+.page.turn { animation: pageturn .5s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes pageturn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.folio { font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--paper-mute); }
+.ptitle { font: 400 clamp(30px, 8vw, 42px)/1.05 var(--serif); letter-spacing: .01em; margin: 8px 0 14px; text-wrap: balance; color: var(--paper-ink); }
+.prule { height: 1px; background: var(--paper-rule); margin-bottom: 22px; }
+
+.stanza { font: 400 18px/1.75 var(--serif); margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.stanza .dc { float: left; font: 400 64px/0.82 var(--serif); color: var(--paper-accent); margin: 6px 10px 0 0; }
+.sep { text-align: center; color: var(--paper-mute); font-size: 12px; margin: 22px 0; letter-spacing: .8em; }
+
+.subscribe { display: inline-flex; margin-top: 26px; background: var(--paper-ink); color: var(--paper); border: 0; border-radius: 999px; padding: 10px 20px; font: 500 13px var(--sans); }
+.subscribe[aria-pressed="true"] { background: transparent; color: var(--paper-ink); border: 1px solid var(--paper-ink); }
+@media (prefers-reduced-motion: reduce) { .page.turn { animation: none; } }
+
+/* Outlook-style email client */
+.ol { background: #ffffff; color: #242424; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 48px -28px rgba(0,0,0,.8); font-family: var(--sans); }
+.ol-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #0f6cbd; color: #fff; }
+.ol-logo { font: 600 14px var(--sans); white-space: nowrap; }
+.ol-search { flex: 1; min-width: 0; background: rgba(255,255,255,.2); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #e3eefa; }
+.ol-av { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: #0f6cbd; display: grid; place-items: center; font: 600 11px var(--sans); flex: none; }
+.ol-folders { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #e1e1e1; overflow-x: auto; }
+.ol-folder { font: 500 12px var(--sans); padding: 5px 10px; border-radius: 6px; border: 0; background: none; color: #616161; white-space: nowrap; }
+.ol-folder:hover { background: #f3f3f3; }
+.ol-folder[aria-pressed="true"] { background: #e6f0fa; color: #0f6cbd; font-weight: 600; }
+.ol-folder .ct { color: #0f6cbd; font-weight: 700; margin-left: 4px; }
+.ol-list { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid #e1e1e1; }
+.ol-item { display: grid; grid-template-columns: 38px 1fr; gap: 10px; width: 100%; text-align: left; background: #fff; border: 0; border-bottom: 1px solid #f0f0f0; padding: 12px 14px; color: inherit; }
+.ol-item:hover { background: #f5f9fd; }
+.ol-item[aria-selected="true"] { background: #eef5fc; box-shadow: inset 3px 0 0 #0f6cbd; }
+.ol-item .av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 13px var(--sans); }
+.ol-item .row1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.ol-item .from { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ol-item .date { font-size: 11px; color: #616161; white-space: nowrap; }
+.ol-item .subj { font-size: 13px; margin-top: 2px; }
+.ol-item .prev { font-size: 12px; color: #616161; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.ol-item.unread .from, .ol-item.unread .subj { font-weight: 700; }
+.ol-item .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0f6cbd; margin-right: 6px; vertical-align: middle; }
+.ol-item .draft-tag { color: #a4262c; font-weight: 600; }
+.ol-empty { padding: 28px 14px; font-size: 13px; color: #616161; text-align: center; margin: 0; }
+.ol-read { padding: 18px 18px 22px; min-width: 0; }
+.ol-read .subject { font: 600 19px/1.25 var(--sans); margin: 0 0 14px; overflow-wrap: anywhere; }
+.hdr { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.hdr .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 13px var(--sans); flex: none; }
+.hdr .who { font-weight: 600; font-size: 14px; }
+.hdr .meta { font-size: 12px; color: #616161; line-height: 1.6; overflow-wrap: anywhere; }
+.ol-read p { font: 400 14px/1.6 var(--sans); margin: 0 0 12px; overflow-wrap: anywhere; }
+.ol-att { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e1e1e1; }
+.ol-att span { font: 500 12px var(--sans); padding: 7px 10px; border: 1px solid #d1d1d1; border-radius: 6px; background: #fafafa; color: #242424; max-width: 100%; overflow-wrap: anywhere; }
+.ol-att span::before { content: "\1F4CE"; margin-right: 6px; }
+details.earlier { margin-top: 18px; }
+details.earlier summary { cursor: pointer; color: #0f6cbd; font: 600 13px var(--sans); padding: 8px 0; }
+details.earlier .quoted { border-left: 3px solid #c7d9ee; padding-left: 14px; margin-top: 8px; }
+
+/* Register interest */
+.signup { max-width: 560px; margin: 36px auto 0; padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); display: grid; gap: 14px; }
+.signup h2 { margin: 0; font: 400 italic 26px/1.15 var(--serif); color: var(--ink); }
+.signup p { margin: 6px 0 0; color: var(--mute); font-size: 14px; }
+.signup-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.signup input { flex: 1 1 200px; min-width: 0; padding: 12px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.signup input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.signup button { padding: 12px 22px; border-radius: 999px; border: 0; background: var(--gold); color: #15130f; font: 600 13px var(--sans); letter-spacing: .02em; }
+.signup-msg { min-height: 1.4em; margin: 10px 0 0; font: 400 12px/1.4 var(--mono); color: var(--mute); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="masthead">
+  <h1 class="title">The Good Friend</h1>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Documents">
+  <button class="tab" role="tab" data-act="tab" data-tab="chat" aria-selected="true">Group chat</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="feed" aria-selected="false">Feed</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="essay" aria-selected="false">Blog</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="mail" aria-selected="false">Email</button>
+</nav>
+
+<main>
+  <section class="view" data-view="chat" role="tabpanel">
+    <div class="chat" id="chat-body"></div>
+  </section>
+
+  <section class="view" data-view="feed" role="tabpanel" hidden>
+    <div class="insta">
+      <div class="ig-bar">
+        <span class="ig-user" id="ig-handle"></span>
+        <span class="ig-icons" aria-hidden="true">+ &#9776;</span>
+      </div>
+      <div class="ig-top">
+        <div class="ig-ring"><span id="ig-initials">CC</span></div>
+        <div class="ig-stats" id="ig-stats"></div>
+      </div>
+      <div class="ig-name" id="ig-name"></div>
+      <div class="ig-btns">
+        <button type="button">Edit profile</button>
+        <button type="button">Share profile</button>
+      </div>
+      <div class="ig-tabs"><span>POSTS</span></div>
+      <div class="ig-grid" id="ig-grid"></div>
+      <article class="ig-post" id="ig-post" aria-live="polite"></article>
+    </div>
+  </section>
+
+  <section class="view" data-view="essay" role="tabpanel" hidden>
+    <article class="essay" id="essay-body"></article>
+  </section>
+
+  <section class="view" data-view="mail" role="tabpanel" hidden>
+    <div class="ol" aria-label="Mail">
+      <div class="ol-top">
+        <span class="ol-logo">Outlook</span>
+        <span class="ol-search">Search mail</span>
+        <span class="ol-av">SM</span>
+      </div>
+      <div class="ol-folders" id="ol-folders"></div>
+      <ul class="ol-list" id="mail-list" aria-label="Messages"></ul>
+      <article class="ol-read" id="mail-read" aria-live="polite"></article>
+    </div>
+  </section>
+</main>
+
+<section class="signup" aria-labelledby="signup-h">
+  <div>
+    <h2 id="signup-h">Read the full story</h2>
+    <p>Register your interest and we'll let you know when it's published.</p>
+  </div>
+  <form id="signup-form" novalidate>
+    <label for="signup-email" class="sr">Email address</label>
+    <div class="signup-row">
+      <input id="signup-email" type="email" autocomplete="email" placeholder="you@example.com" required>
+      <button type="submit">Register interest</button>
+    </div>
+    <p class="signup-msg" id="signup-msg" aria-live="polite"></p>
+  </form>
+</section>
+
+<script>
+// ---- CONFIG ----
+// Sign-up endpoint for the published site (GitHub Pages etc). Paste a form URL here,
+// for example from Formspree (https://formspree.io/f/your-id). Leave it empty to use the
+// Claude artifact's own database instead.
+var SIGNUP_ENDPOINT = "https://formspree.io/f/mjygdadp";
+
+// ---- CONTENT. Edit here; the page rebuilds from this object. ASCII only. ----
+var DATA = {
+  chat: {
+    name: "Martin's stag",
+    members: "James Bird, Martin, ~Stefan, ~Will, ~Dan, ~Dan, Angus Marsh, You",
+    draft: "this sounds fucking shit",
+    messages: [
+      { t: "18:58", from: "James Bird", text: "I've booked the crazy golf for 11AM – does that work for everyone?", rx: [["👍", 6]] },
+      { t: "20:34", from: "James Bird", text: "@Callum?" },
+      { t: "22:03", from: "James Bird", text: "Going to assume Callum is okay with that time. After that we'll go straight onto the wine tasting place and then I've booked dinner at a restaurant for the evening." },
+      { t: "22:04", from: "James Bird", text: "Would everyone be able to transfer me £48.52 for the golf and the wine tasting? My bank details are 40-08-21 93483947" },
+      { t: "22:04", from: "Martin", text: "Sounds good Jim" },
+      { t: "22:04", from: "Martin", text: "Looking forward to it" },
+      { t: "22:04", from: "Martin", text: "Liz has got me picking out cummerbunds or something this weekend. Wish me luck 🪦🪦", rx: [["😂", 2]] },
+      { t: "22:04", from: "James Bird", text: "Yeah she sent me over the pics of the tux I'm wearing" },
+      { t: "22:05", from: "Martin", text: "As long as you don't look better than me Jim" },
+      { t: "22:07", from: "~Stefan", text: "James, I have sent you the money. Please let me know if you have received it." },
+      { t: "22:08", from: "Martin", text: "If only you were this punctual with your project management Stefan..." },
+      { t: "22:10", from: "~Stefan", text: "What do you mean, Martin? I think I am, no?" },
+      { t: "22:11", from: "Martin", text: "I'm joking Stefan lol" },
+      { t: "23:01", from: "James Bird", text: "Got the money Stefan, thanks" }
+    ]
+  },
+
+  feed: {
+    handle: "cal.com",
+    name: "Callum Comery",
+    initials: "CC",
+    counts: [["posts", "15"], ["followers", "186"], ["following", "97"]],
+    // Captions and order as supplied by the user.
+    posts: [
+      { img: "img/01.jpg", caption: "A marriage made in heaven", likes: 6 },
+      { img: "img/02.jpg", caption: "All aboard", likes: 4 },
+      { img: "img/03.jpg", caption: "Breakfast of champions", likes: 9 },
+      { img: "img/04.jpg", caption: "G=split", likes: 3 },
+      { img: "img/05.jpg", caption: "Guess which one is mine", likes: 7 },
+      { img: "img/06.jpg", caption: "Guess which one's mine", likes: 5 },
+      { img: "img/15.jpg", caption: "I live to give", likes: 8 },
+      { img: "img/07.jpg", caption: "If you can split the M on a Moretti mission accomplished", likes: 4 },
+      { img: "img/08.jpg", caption: "Merry christmas eve eve", likes: 11 },
+      { img: "img/09.jpg", caption: "Promise I'm not going fruity", likes: 6 },
+      { img: "img/10.jpg", caption: "Sign hirra for the birra", likes: 2 },
+      { img: "img/11.jpg", caption: "The garden of earthly delights", likes: 10 },
+      { img: "img/12.jpg", caption: "These are both for me mate", likes: 3 },
+      { img: "img/13.jpg", caption: "When in Valencia", likes: 2 },
+      { img: "img/14.jpg", caption: "Whoops almost saw this one off", likes: 5 }
+    ]
+  },
+
+  essay: {
+    publication: "Vagabond Thoughts",
+    byline: "James Bird",
+    poems: [
+      {
+        title: "UNSAID",
+        short: "Unsaid",
+        stanzas: [
+          [
+            "The light crept through the cloud as if the sky had shattered, pitched",
+            "Shards of silver moonbeam down upon the drowsy grass, illuminated",
+            "That which was my one pearl of solace, my fiction of consolation",
+            "And she fixed me with bold green glare, challenged",
+            "Me to speak by her stance and her aspect. I demurred,",
+            "looked away across the field."
+          ],
+          [
+            "Would that I had known then what I was leaving there on that field.",
+            "Would that I had known that I must speak then once, and once only, and for all time.",
+            "Or forever disguise the most desperate and closest passion of my heart.",
+            "The moment hung heavy in the stillness.",
+            "The air and the earth held their breath, held",
+            "And let go their breath.",
+            "And I, I spoke not, all of my so potent art, my rough magic",
+            "Failing me but to fix forever",
+            "The details and dimensions of my loss in my mind."
+          ]
+        ]
+      },
+      {
+        title: "IDLE TALK OF YOU AND ME",
+        short: "Idle talk",
+        stanzas: [
+          [
+            "Evening stands impatient like a guest too polite to leave",
+            "Let's talk more politics",
+            "Do things get worse or just stay the same",
+            "Anything to chase off",
+            "Idle talk of you and me"
+          ],
+          [
+            "But the wait is over now, and I can't stop the sinking feeling",
+            "I can't convince myself to let it go",
+            "No matter how I reason, marshall arguments against it",
+            "I just want to stand up and tell you so"
+          ],
+          [
+            "And if I spoke out in a moment's daring",
+            "Would your heart respond even if you thought better",
+            "And is time slipping through my hands",
+            "Trickling into eternity like the desert sand",
+            "And the age that shows in our faces",
+            "Like a record of the chances we didn't take",
+            "Chances that we hint at when we make",
+            "Idle talk of you and me"
+          ]
+        ]
+      }
+    ]
+  },
+
+  // Mailbox of Stefan Mueller. Each folder holds message objects.
+  mail: {
+    order: ["inbox", "sent", "drafts"],
+    folders: {
+      inbox: {
+        label: "Inbox",
+        items: [
+          {
+            from: "Paul Caporale",
+            initials: "PC",
+            color: "#8e6fb8",
+            addr: "paul.caporale@elucidescence.com",
+            to: "Stefan Mueller <stefan.mueller@elucidescence.com>",
+            cc: "Martin Stockwell <martin.stockwell@elucidescence.com>",
+            sent: "Monday, 19 October 09:07:16",
+            short: "Mon 09:07",
+            subject: "RE: Data project",
+            unread: true,
+            body: [
+              "Thx Stefan, Martin did mention you were a big help on his project. Have put him in CC as he is leading on this. Will look at these later this week if I have time",
+              "Always good to have some nerdy stuff to bombard the clients with anyway",
+              "Cheers",
+              "PC"
+            ],
+            attachments: [],
+            // Earlier message in this thread, held in another folder.
+            earlier: { folder: "sent", index: 0 }
+          }
+        ]
+      },
+      sent: {
+        label: "Sent",
+        items: [
+          {
+            from: "Stefan Mueller",
+            initials: "SM",
+            color: "#a4593f",
+            addr: "stefan.mueller@elucidescence.com",
+            to: "Paul Caporale <paul.caporale@elucidescence.com>",
+            cc: "",
+            sent: "Sunday, 18 October 19:05:12",
+            short: "Sun 19:05",
+            subject: "Data project",
+            unread: false,
+            body: [
+              "Hi Paul,",
+              "I believe Martin Stockwell has already briefed you on the data analytics project last week. I have been the lead on this project from the beginning, and I just wanted to send over some supporting documents, as well as the full slide deck walking through my methodology and findings.",
+              "In particular, I have also attached some appendices with further worked examples. You'll see that I applied several analysis techniques that are fairly cutting edge in the industry.",
+              "I know you have met with Martin but if you would like to sit down for a chat at some point for me to brief you in more detail I would be very happy to find time?",
+              "Many thanks and kind regards,",
+              "Stefan"
+            ],
+            attachments: [
+              "Stefan_Mueller_Data_Project.ppt",
+              "Stefan_Mueller_Data_Project_Appendices",
+              "Stefan_Mueller_Research_Methodology"
+            ],
+            earlier: null
+          }
+        ]
+      },
+      drafts: {
+        label: "Drafts",
+        items: [
+          {
+            from: "Stefan Mueller",
+            initials: "SM",
+            color: "#a4593f",
+            addr: "stefan.mueller@elucidescence.com",
+            to: "Martin Stockwell <martin.stockwell@elucidescence.com>",
+            cc: "",
+            sent: "Not sent",
+            short: "Draft",
+            subject: "(no subject)",
+            unread: false,
+            draft: true,
+            body: [
+              "Hi Martin,",
+              "I would like to formally request a transfer to another team. I feel extremely unhappy at how you have taken credit for the data  project, which you had little involvement with. I hope you will approve the"
+            ],
+            attachments: [],
+            earlier: null
+          }
+        ]
+      }
+    }
+  },
+
+  deck: null
+};
+
+// ---- RENDER ----
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function renderChat() {
+  var box = document.getElementById("chat-body");
+  var head = el("div", "chat-head");
+  head.appendChild(el("div", "chat-avatar", "MS"));
+  var meta = el("div", "");
+  meta.appendChild(el("div", "chat-title", DATA.chat.name));
+  meta.appendChild(el("div", "chat-sub", DATA.chat.members));
+  head.appendChild(meta);
+  box.appendChild(head);
+  DATA.chat.messages.forEach(function (m) {
+    var mine = m.from === "You";
+    var b = el("div", "msg" + (mine ? " r" : ""));
+    if (!mine) b.appendChild(el("span", "who", m.from));
+    b.appendChild(el("span", "", m.text));
+    if (m.rx) {
+      var rx = el("span", "rx", "");
+      m.rx.forEach(function (r) { rx.appendChild(el("span", "", r[0] + " " + r[1])); });
+      b.appendChild(rx);
+    }
+    b.appendChild(el("span", "time", m.t));
+    box.appendChild(b);
+  });
+  var bar = el("div", "compose");
+  bar.appendChild(el("span", "draft", DATA.chat.draft));
+  bar.appendChild(el("span", "send", ""));
+  box.appendChild(bar);
+}
+
+function renderFeed() {
+  var f = DATA.feed;
+  document.getElementById("ig-handle").textContent = f.handle;
+  document.getElementById("ig-initials").textContent = f.initials;
+  document.getElementById("ig-name").textContent = f.name;
+  var stats = document.getElementById("ig-stats");
+  f.counts.forEach(function (c) {
+    var s = el("div", "");
+    s.appendChild(el("b", "", c[1]));
+    s.appendChild(document.createTextNode(c[0]));
+    stats.appendChild(s);
+  });
+  var grid = document.getElementById("ig-grid");
+  f.posts.forEach(function (p, i) {
+    var t = el("button", "ig-tile");
+    t.setAttribute("data-act", "post");
+    t.setAttribute("data-i", String(i));
+    t.setAttribute("aria-label", "Open post: " + p.caption);
+    var img = el("img", "");
+    img.src = p.img;
+    img.alt = "";
+    img.loading = "lazy";
+    t.appendChild(img);
+    grid.appendChild(t);
+  });
+  showPost(0);
+}
+
+var HEART = '<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.6 3.2 5 6.7 5c2 0 3.5 1.1 4.3 2.4C11.8 6.1 13.3 5 15.3 5c3.5 0 5.7 3.6 4.2 6.8C17.5 16.4 12 21 12 21z"/></svg>';
+var COMMENT = '<svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/></svg>';
+var SHARE = '<svg viewBox="0 0 24 24"><path d="M22 3L10 14M22 3l-7 18-4-7-7-4z"/></svg>';
+
+function showPost(i) {
+  var f = DATA.feed;
+  var p = f.posts[i];
+  var box = document.getElementById("ig-post");
+  box.textContent = "";
+  var head = el("div", "ig-post-head");
+  var mini = el("div", "mini");
+  mini.appendChild(el("span", "", f.initials));
+  head.appendChild(mini);
+  head.appendChild(el("b", "", f.handle));
+  box.appendChild(head);
+  var img = el("img", "");
+  img.src = p.img;
+  img.alt = p.caption;
+  box.appendChild(img);
+  var acts = el("div", "ig-actions");
+  acts.innerHTML = HEART + COMMENT + SHARE;
+  box.appendChild(acts);
+  var body = el("div", "ig-body");
+  body.appendChild(el("div", "likes", p.likes + " likes"));
+  var cap = el("p", "cap");
+  cap.appendChild(el("b", "", f.handle));
+  cap.appendChild(document.createTextNode(p.caption));
+  body.appendChild(cap);
+  box.appendChild(body);
+  var tiles = document.querySelectorAll(".ig-tile");
+  for (var k = 0; k < tiles.length; k++) {
+    tiles[k].setAttribute("aria-pressed", k === i ? "true" : "false");
+  }
+}
+
+var ROMAN = ["I", "II", "III", "IV"];
+var poemIx = 0;
+function renderEssay() {
+  var e = DATA.essay;
+  var box = document.getElementById("essay-body");
+  var head = el("header", "paper-head");
+  head.appendChild(el("div", "pub", e.publication));
+  head.appendChild(el("div", "by", "by " + e.byline));
+  box.appendChild(head);
+  var pager = el("nav", "pager");
+  pager.setAttribute("aria-label", "Poems");
+  e.poems.forEach(function (p, i) {
+    var b = el("button", "");
+    b.setAttribute("data-act", "poem");
+    b.setAttribute("data-i", String(i));
+    b.setAttribute("aria-selected", "false");
+    b.appendChild(el("span", "num", ROMAN[i]));
+    b.appendChild(el("span", "", p.short));
+    pager.appendChild(b);
+  });
+  box.appendChild(pager);
+  var page = el("div", "page");
+  page.id = "poem-page";
+  box.appendChild(page);
+  var sub = el("button", "subscribe", "Subscribe");
+  sub.setAttribute("data-act", "subscribe");
+  sub.setAttribute("aria-pressed", "false");
+  box.appendChild(sub);
+  showPoem(0);
+}
+function showPoem(i) {
+  var e = DATA.essay;
+  poemIx = Math.max(0, Math.min(e.poems.length - 1, i));
+  var p = e.poems[poemIx];
+  var page = document.getElementById("poem-page");
+  page.textContent = "";
+  page.appendChild(el("div", "folio", "Poem " + ROMAN[poemIx] + " of " + ROMAN[e.poems.length - 1]));
+  page.appendChild(el("h2", "ptitle", p.title));
+  page.appendChild(el("div", "prule", ""));
+  p.stanzas.forEach(function (lines, si) {
+    if (si > 0) {
+      var sep = el("div", "sep", "");
+      sep.textContent = "⁂";
+      page.appendChild(sep);
+    }
+    var text = lines.join("\n");
+    var s = el("p", "stanza");
+    if (si === 0) {
+      s.appendChild(el("span", "dc", text.charAt(0)));
+      s.appendChild(document.createTextNode(text.slice(1)));
+    } else {
+      s.textContent = text;
+    }
+    page.appendChild(s);
+  });
+  var pager = document.querySelectorAll(".pager button");
+  for (var k = 0; k < pager.length; k++) {
+    pager[k].setAttribute("aria-selected", k === poemIx ? "true" : "false");
+  }
+  page.classList.remove("turn");
+  void page.offsetWidth;
+  page.classList.add("turn");
+}
+
+// Email client
+var mailFolder = "inbox";
+var mailIx = 0;
+function mailItems() { return DATA.mail.folders[mailFolder].items; }
+
+function emailHeader(m) {
+  var h = el("div", "hdr");
+  var av = el("span", "av", m.initials);
+  av.style.background = m.color;
+  h.appendChild(av);
+  var who = el("div", "");
+  who.appendChild(el("div", "who", m.from + " <" + m.addr + ">"));
+  var meta = el("div", "meta");
+  meta.appendChild(document.createTextNode("To: " + m.to));
+  meta.appendChild(document.createElement("br"));
+  if (m.cc) {
+    meta.appendChild(document.createTextNode("Cc: " + m.cc));
+    meta.appendChild(document.createElement("br"));
+  }
+  meta.appendChild(document.createTextNode((m.draft ? "Status: " : "Sent: ") + m.sent));
+  who.appendChild(meta);
+  h.appendChild(who);
+  return h;
+}
+function emailBody(m) {
+  var frag = document.createDocumentFragment();
+  frag.appendChild(emailHeader(m));
+  m.body.forEach(function (para) { frag.appendChild(el("p", "", para)); });
+  return frag;
+}
+
+function renderFolders() {
+  var box = document.getElementById("ol-folders");
+  box.textContent = "";
+  DATA.mail.order.forEach(function (key) {
+    var f = DATA.mail.folders[key];
+    var b = el("button", "ol-folder");
+    b.setAttribute("data-act", "folder");
+    b.setAttribute("data-f", key);
+    b.setAttribute("aria-pressed", key === mailFolder ? "true" : "false");
+    b.appendChild(document.createTextNode(f.label));
+    var unread = f.items.filter(function (m) { return m.unread; }).length;
+    if (unread) b.appendChild(el("span", "ct", String(unread)));
+    box.appendChild(b);
+  });
+}
+
+function renderList() {
+  var list = document.getElementById("mail-list");
+  list.textContent = "";
+  var items = mailItems();
+  if (!items.length) {
+    list.appendChild(el("li", "ol-empty", "Nothing here."));
+    return;
+  }
+  items.forEach(function (m, i) {
+    var li = el("li", "");
+    var b = el("button", "ol-item" + (m.unread ? " unread" : ""));
+    b.setAttribute("data-act", "mail");
+    b.setAttribute("data-i", String(i));
+    b.setAttribute("aria-selected", i === mailIx ? "true" : "false");
+    var av = el("span", "av", m.initials);
+    av.style.background = m.color;
+    b.appendChild(av);
+    var col = el("div", "");
+    var r1 = el("div", "row1");
+    var outgoing = m.draft || mailFolder === "sent";
+    var fromWrap = el("span", "from");
+    if (m.unread) fromWrap.appendChild(el("span", "dot", ""));
+    fromWrap.appendChild(document.createTextNode(outgoing ? "To: " + m.to.split(" <")[0] : m.from));
+    r1.appendChild(fromWrap);
+    r1.appendChild(el("span", m.draft ? "date draft-tag" : "date", m.short));
+    col.appendChild(r1);
+    col.appendChild(el("div", "subj", m.subject));
+    col.appendChild(el("div", "prev", m.body[0]));
+    b.appendChild(col);
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+}
+
+function showFolder(key) {
+  mailFolder = key;
+  mailIx = 0;
+  renderFolders();
+  renderList();
+  showMail(0);
+}
+
+function showMail(i) {
+  var items = mailItems();
+  var read = document.getElementById("mail-read");
+  read.textContent = "";
+  if (!items.length) {
+    mailIx = 0;
+    read.appendChild(el("p", "ol-empty", "This folder is empty."));
+    return;
+  }
+  mailIx = Math.max(0, Math.min(items.length - 1, i));
+  var m = items[mailIx];
+  var rows = document.querySelectorAll(".ol-item");
+  for (var k = 0; k < rows.length; k++) {
+    rows[k].setAttribute("aria-selected", k === mailIx ? "true" : "false");
+  }
+  read.appendChild(el("h3", "subject", m.subject));
+  read.appendChild(emailBody(m));
+  if (m.attachments.length) {
+    var att = el("div", "ol-att");
+    m.attachments.forEach(function (a) { att.appendChild(el("span", "", a)); });
+    read.appendChild(att);
+  }
+  if (m.earlier) {
+    var prev = DATA.mail.folders[m.earlier.folder].items[m.earlier.index];
+    var det = el("details", "earlier");
+    det.appendChild(el("summary", "", "Show earlier message from " + prev.from));
+    var q = el("div", "quoted");
+    q.appendChild(emailBody(prev));
+    if (prev.attachments.length) {
+      var patt = el("div", "ol-att");
+      prev.attachments.forEach(function (a) { patt.appendChild(el("span", "", a)); });
+      q.appendChild(patt);
+    }
+    det.appendChild(q);
+    read.appendChild(det);
+  }
+}
+
+// ---- TABS, LINKS, KEYS (one delegated listener) ----
+function showTab(name) {
+  var panels = document.querySelectorAll("[data-view]");
+  for (var i = 0; i < panels.length; i++) {
+    panels[i].hidden = panels[i].getAttribute("data-view") !== name;
+  }
+  var tabs = document.querySelectorAll(".tab");
+  for (var j = 0; j < tabs.length; j++) {
+    tabs[j].setAttribute("aria-selected", tabs[j].getAttribute("data-tab") === name ? "true" : "false");
+  }
+  try { history.replaceState(null, "", "#" + name); } catch (err) {}
+}
+
+document.addEventListener("click", function (e) {
+  var t = e.target.closest("[data-act]");
+  if (!t) return;
+  var act = t.getAttribute("data-act");
+  if (act === "tab") showTab(t.getAttribute("data-tab"));
+  else if (act === "post") showPost(Number(t.getAttribute("data-i")));
+  else if (act === "poem") showPoem(Number(t.getAttribute("data-i")));
+  else if (act === "folder") showFolder(t.getAttribute("data-f"));
+  else if (act === "mail") showMail(Number(t.getAttribute("data-i")));
+  else if (act === "subscribe") {
+    var on = t.getAttribute("aria-pressed") !== "true";
+    t.setAttribute("aria-pressed", on ? "true" : "false");
+    t.textContent = on ? "Subscribed" : "Subscribe";
+  }
+});
+
+document.addEventListener("keydown", function (e) {
+  if (!document.querySelector('[data-view="essay"]').hidden) {
+    if (e.key === "ArrowRight") showPoem(poemIx + 1);
+    if (e.key === "ArrowLeft") showPoem(poemIx - 1);
+  }
+});
+
+// Sign-up. Uses SIGNUP_ENDPOINT when it is set (for the published site). Otherwise,
+// or if the endpoint cannot be reached, writes to the Claude artifact's database.
+async function registerInterest(email) {
+  if (SIGNUP_ENDPOINT) {
+    try {
+      var r = await fetch(SIGNUP_ENDPOINT, {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, source: "The Good Friend" })
+      });
+      if (r.ok) return "Thanks. You're on the list.";
+      return "Something went wrong. Please try again.";
+    } catch (err) { /* fall through to the artifact database */ }
+  }
+  var db = null;
+  try {
+    db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+  } catch (err) { db = null; }
+  if (!db) return "Sign-up isn't available in this view. Please try again later.";
+  try {
+    await db.collection("signups").add({ email: email, at: new Date().toISOString() });
+    return "Thanks. You're on the list.";
+  } catch (err) {
+    if (err && err.code === "resource_exhausted") return "Too many attempts. Try again in a moment.";
+    if (err && err.code === "quota_exceeded") return "The list is full at the moment.";
+    return "Something went wrong. Please try again.";
+  }
+}
+
+document.addEventListener("submit", async function (e) {
+  if (!e.target.matches("#signup-form")) return;
+  e.preventDefault();
+  var v = document.getElementById("signup-email").value.trim();
+  var msg = document.getElementById("signup-msg");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+    msg.textContent = "Enter a valid email address.";
+    return;
+  }
+  msg.textContent = "Registering...";
+  msg.textContent = await registerInterest(v);
+});
+
+renderChat();
+renderFeed();
+renderEssay();
+renderFolders();
+renderList();
+showMail(0);
+var start = (location.hash || "").replace("#", "");
+showTab(["chat", "feed", "essay", "mail"].indexOf(start) >= 0 ? start : "chat");
+</script>
