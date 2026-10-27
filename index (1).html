@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teams</title>
+<style>
+:root {
+  --bg: #f0f0f0; --panel: #ffffff; --rail: #292a3e; --rail-on: #3d3f5c;
+  --text: #242424; --mute: #6b6b6b; --line: #e3e3e3; --brand: #5b5fc7;
+  --them: #f0f0f0; --me: #5b5fc7; --me-text: #ffffff; --hover: #f5f5f8;
+  --chip: #ffffff; --chip-line: #5b5fc7; --toast: #ffffff; --danger: #c4314b;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1b1f; --panel: #242428; --rail: #17171c; --rail-on: #2e2e36;
+    --text: #f2f2f2; --mute: #a3a3ad; --line: #37373f; --brand: #8b8fe0;
+    --them: #34343c; --me: #5b5fc7; --me-text: #ffffff; --hover: #2c2c33;
+    --chip: #242428; --chip-line: #8b8fe0; --toast: #2c2c33; --danger: #ff7a8a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1b1f; --panel: #242428; --rail: #17171c; --rail-on: #2e2e36;
+  --text: #f2f2f2; --mute: #a3a3ad; --line: #37373f; --brand: #8b8fe0;
+  --them: #34343c; --me: #5b5fc7; --me-text: #ffffff; --hover: #2c2c33;
+  --chip: #242428; --chip-line: #8b8fe0; --toast: #2c2c33; --danger: #ff7a8a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.4 var(--sans);
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:active { transform: scale(0.97); }
+[hidden] { display: none !important; }
+
+.app { display: grid; grid-template-columns: 68px 1fr; height: 100vh; height: 100dvh; }
+
+/* Rail */
+.rail { background: var(--rail); display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 4px; }
+.rb {
+  width: 56px; padding: 8px 0 6px; border-radius: 8px; color: #c9c9d6;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 20px; position: relative;
+}
+.rb span { font-size: 11px; }
+.rb.on { background: var(--rail-on); color: #fff; }
+.rb .dot { position: absolute; top: 4px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
+
+/* Panels */
+.panel { min-height: 0; display: grid; grid-template-columns: 300px 1fr; background: var(--panel); }
+#p-outlook, #p-teams, #p-calls, #p-calendar { grid-template-columns: 1fr; }
+#p-outlook { display: flex; flex-direction: column; }
+#p-teams, #p-calls, #p-calendar { overflow-y: auto; align-content: start; }
+
+.list { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.lh { padding: 16px 18px 10px; }
+.lh h2 { margin: 0; font-size: 20px; font-weight: 700; }
+.search { margin: 0 14px 10px; padding: 8px 12px; border-radius: 6px; background: var(--bg); color: var(--mute); }
+.item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; width: 100%; text-align: left; }
+.item:hover { background: var(--hover); }
+.item .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item small, .ch small { color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item b { font-weight: 600; }
+.unread-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); flex: none; }
+.av {
+  width: 40px; height: 40px; border-radius: 50%; background: #c6a2f0; color: #2b1140;
+  display: grid; place-items: center; font-weight: 600; flex: none; font-size: 14px;
+}
+.av.sm { width: 32px; height: 32px; font-size: 13px; }
+
+.convo { display: flex; flex-direction: column; min-height: 0; }
+.ch { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.ch > div { display: flex; flex-direction: column; min-width: 0; }
+.back { display: none; font-size: 26px; padding: 0 6px 0 0; line-height: 1; }
+#status { color: var(--mute); }
+
+.msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px; }
+.tbox { display: flex; flex-direction: column; gap: 6px; min-height: 100%; justify-content: flex-end; }
+.msg {
+  max-width: 72%; padding: 8px 12px; border-radius: 12px; white-space: pre-line; word-wrap: break-word;
+  animation: pop 180ms ease-out;
+}
+.sender { align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--mute); margin: 4px 0 -2px 12px; }
+.msg.them { align-self: flex-start; background: var(--them); border-bottom-left-radius: 3px; }
+.msg.me { align-self: flex-end; background: var(--me); color: var(--me-text); border-bottom-right-radius: 3px; }
+.msg.sys {
+  align-self: center; max-width: 100%; color: var(--mute); font-size: 12px; letter-spacing: .08em;
+  font-weight: 600; background: none; padding: 8px 0; text-align: center;
+}
+.typing { align-self: flex-start; color: var(--mute); padding: 6px 12px; font-size: 13px; }
+.typing i { display: inline-block; width: 6px; height: 6px; margin: 0 2px; border-radius: 50%; background: var(--mute); animation: blink 1s infinite; }
+.typing i:nth-child(2) { animation-delay: .2s; }
+.typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
+@keyframes pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.composer { border-top: 1px solid var(--line); padding: 10px 14px calc(12px + var(--safe-b)); }
+.chips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.chips:empty { display: none; }
+.chips .label { color: var(--mute); font-size: 12px; }
+.chip {
+  text-align: left; padding: 11px 14px; border: 1px solid var(--chip-line); border-radius: 10px;
+  background: var(--chip); color: var(--text); font-size: 15px;
+}
+.chip:hover { background: var(--hover); }
+.restart { align-self: center; padding: 9px 18px; border-radius: 8px; background: var(--brand); color: #fff; font-weight: 600; }
+.bar { border: 1px solid var(--line); border-radius: 20px; padding: 10px 16px; color: var(--mute); background: var(--bg); }
+
+.empty { padding: 30px 18px; color: var(--mute); }
+.placeholder { display: none; flex: 1; align-items: center; justify-content: center; color: var(--mute); }
+#p-chat.no-chat .placeholder { display: flex; }
+#p-chat.no-chat .ch, #p-chat.no-chat .msgs, #p-chat.no-chat .composer { display: none; }
+
+/* Teams */
+.team { padding: 14px 18px 4px; font-weight: 700; }
+.chan { display: flex; flex-direction: column; width: 100%; text-align: left; padding: 9px 18px 9px 34px; }
+.chan:hover { background: var(--hover); }
+.chan small { color: var(--mute); }
+
+/* Calls */
+.call { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+.call .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.call small { color: var(--mute); }
+.call .missed { color: var(--danger); }
+.call .when { color: var(--mute); font-size: 12px; white-space: nowrap; }
+
+/* Toasts */
+#toasts { position: fixed; top: 14px; right: 14px; display: flex; flex-direction: column; gap: 10px; z-index: 10; width: 320px; max-width: calc(100vw - 28px); }
+.toast {
+  text-align: left; background: var(--toast); border: 1px solid var(--line); border-left: 4px solid var(--brand);
+  border-radius: 10px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  display: flex; flex-direction: column; gap: 2px; animation: slide 220ms ease-out; transition: opacity .4s;
+}
+.toast b { font-weight: 600; }
+.toast span { color: var(--mute); white-space: pre-line; overflow: hidden; text-overflow: ellipsis; }
+.toast.out { opacity: 0; }
+@keyframes slide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* ===== Outlook: same app as the portal's email client ===== */
+.ol { background: #ffffff; color: #242424; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 48px -28px rgba(0,0,0,.8); font-family: var(--sans); }
+.ol-top { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #0f6cbd; color: #fff; }
+.ol-logo { font: 600 14px var(--sans); white-space: nowrap; }
+.ol-search { flex: 1; min-width: 0; background: rgba(255,255,255,.2); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #e3eefa; }
+.ol-av { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: #0f6cbd; display: grid; place-items: center; font: 600 11px var(--sans); flex: none; }
+.ol-folders { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #e1e1e1; overflow-x: auto; }
+.ol-folder { font: 500 12px var(--sans); padding: 5px 10px; border-radius: 6px; border: 0; background: none; color: #616161; white-space: nowrap; }
+.ol-folder:hover { background: #f3f3f3; }
+.ol-folder[aria-pressed="true"] { background: #e6f0fa; color: #0f6cbd; font-weight: 600; }
+.ol-folder .ct { color: #0f6cbd; font-weight: 700; margin-left: 4px; }
+.ol-list { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid #e1e1e1; }
+.ol-item { display: grid; grid-template-columns: 38px minmax(0, 1fr); min-width: 0; gap: 10px; width: 100%; text-align: left; background: #fff; border: 0; border-bottom: 1px solid #f0f0f0; padding: 12px 14px; color: inherit; }
+.ol-item:hover { background: #f5f9fd; }
+.ol-item[aria-selected="true"] { background: #eef5fc; box-shadow: inset 3px 0 0 #0f6cbd; }
+.ol-item .av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 13px var(--sans); }
+.ol-item > div { min-width: 0; }
+.ol-item .row1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+.ol-item .from { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ol-item .date { font-size: 11px; color: #616161; white-space: nowrap; }
+.ol-item .subj { font-size: 13px; margin-top: 2px; }
+.ol-item .prev { font-size: 12px; color: #616161; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.ol-item.unread .from, .ol-item.unread .subj { font-weight: 700; }
+.ol-item .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0f6cbd; margin-right: 6px; vertical-align: middle; }
+.ol-item .draft-tag { color: #a4262c; font-weight: 600; }
+.ol-empty { padding: 28px 14px; font-size: 13px; color: #616161; text-align: center; margin: 0; }
+.ol-read { padding: 18px 18px 22px; min-width: 0; }
+.ol-read .subject { font: 600 19px/1.25 var(--sans); margin: 0 0 14px; overflow-wrap: anywhere; }
+.hdr { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.hdr .av { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 13px var(--sans); flex: none; }
+.hdr .who { font-weight: 600; font-size: 14px; }
+.hdr .meta { font-size: 12px; color: #616161; line-height: 1.6; overflow-wrap: anywhere; }
+.ol-read p { font: 400 14px/1.6 var(--sans); margin: 0 0 12px; overflow-wrap: anywhere; }
+.ol-att { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e1e1e1; }
+.ol-att span { font: 500 12px var(--sans); padding: 7px 10px; border: 1px solid #d1d1d1; border-radius: 6px; background: #fafafa; color: #242424; max-width: 100%; overflow-wrap: anywhere; }
+.ol-att span::before { content: "\1F4CE"; margin-right: 6px; }
+details.earlier { margin-top: 18px; }
+details.earlier summary { cursor: pointer; color: #0f6cbd; font: 600 13px var(--sans); padding: 8px 0; }
+details.earlier .quoted { border-left: 3px solid #c7d9ee; padding-left: 14px; margin-top: 8px; }
+.ol-main { display: block; }
+.ol-back { display: inline-flex; background: none; border: 0; padding: 4px 0 14px; color: #0f6cbd; font: 600 14px var(--sans); }
+.ol.reading .ol-folders, .ol.reading .ol-list { display: none; }
+.ol:not(.reading) .ol-read { display: none; }
+.hdr .who { overflow-wrap: anywhere; }
+@media (min-width: 720px) {
+  .ol-main { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); }
+  .ol .ol-list { border-bottom: 0; border-right: 1px solid #e1e1e1; max-height: 560px; overflow-y: auto; }
+  .ol .ol-folders, .ol.reading .ol-folders { display: flex; }
+  .ol .ol-list, .ol.reading .ol-list { display: block; }
+  .ol .ol-read, .ol:not(.reading) .ol-read { display: block; max-height: 560px; overflow-y: auto; }
+  .ol-back { display: none; }
+}
+.ol button:active, .ol-item:active { background: #d7e8f8; }
+.ol-folder[aria-pressed="true"]:active { background: #cfe3f7; }
+.ol-chip { font: 500 12px var(--sans); padding: 7px 10px; border: 1px solid #d1d1d1; border-radius: 6px; background: #fafafa; color: #242424; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.ol-chip::before { content: "\1F4CE"; margin-right: 6px; }
+
+#p-outlook .ol { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 0; box-shadow: none; height: auto; }
+#p-outlook .ol-main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+#p-outlook .ol-list, #p-outlook .ol-read { min-height: 0; height: 100%; overflow-y: auto; max-height: none; }
+.mail-new { animation: pop 300ms ease-out; }
+
+/* Phone */
+@media (max-width: 700px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .rail { order: 2; flex-direction: row; justify-content: space-around; padding: 6px 4px calc(6px + var(--safe-b)); }
+  .rb { width: auto; flex: 1; padding: 6px 0; }
+  .panel { grid-template-columns: 1fr; order: 1; min-height: 0; }
+  .convo { display: none; }
+  .open-convo .list { display: none; }
+  .open-convo .convo { display: flex; }
+  .open-convo .back { display: block; }
+  .list { border-right: 0; }
+  .msg { max-width: 84%; }
+  .chip { font-size: 16px; padding: 13px 14px; }
+  .bar, .msgs { font-size: 16px; }
+  #toasts { left: 12px; right: 12px; width: auto; top: 10px; }
+  #p-outlook .ol-main { display: block; }
+  #p-outlook .ol-read { display: none; }
+  #p-outlook .ol.reading .ol-read { display: block; }
+  #p-outlook .ol.reading .ol-list { display: none; }
+  #p-outlook .ol.reading .ol-folders { display: none; }
+}
+.deck-modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.deck-modal[hidden] { display: none; }
+.deck-box { background: #fff; color: #242424; border-radius: 8px; width: min(340px, 100%); padding: 20px; font: 400 14px/1.45 var(--sans); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+.deck-box h4 { margin: 0 0 6px; font: 600 16px var(--sans); }
+.deck-box p { margin: 0 0 12px; }
+.deck-box input { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #c8c6c4; border-radius: 4px; font: 400 14px var(--sans); }
+.deck-err { color: #a4262c; min-height: 1.2em; margin: 6px 0 0 !important; font-size: 13px !important; }
+.deck-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.deck-btns button { padding: 7px 14px; border-radius: 4px; border: 1px solid #c8c6c4; background: #fff; font: 600 13px var(--sans); }
+.deck-btns #deckOk { background: #0f6cbd; color: #fff; border-color: #0f6cbd; }
+.deck-view { position: fixed; inset: 0; background: #1b1b1b; z-index: 60; display: flex; flex-direction: column; }
+.deck-view[hidden] { display: none; }
+.deck-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: #fff; font: 600 14px var(--sans); }
+.deck-bar .deck-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deck-bar button { background: #333; color: #fff; border: 0; border-radius: 4px; padding: 6px 12px; font: 600 13px var(--sans); }
+.deck-bar button:disabled { opacity: .35; }
+.deck-scroll { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px 12px 16px; }
+.deck-stage { position: relative; width: min(960px, 100%); aspect-ratio: 16 / 9; container-type: inline-size; overflow: hidden; background: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+.deck-shape { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; padding: .8cqw 1.2cqw; overflow: hidden; }
+.deck-p { line-height: 1.2; overflow-wrap: anywhere; }
+.deck-p + .deck-p { margin-top: .6em; }
+.deck-count { color: #bbb; font: 500 13px var(--sans); min-width: 56px; text-align: center; }
+.deck-nav { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 14px 14px; color: #fff; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <nav class="rail" aria-label="Apps">
+    <button class="rb" data-tab="chat" type="button">💬<span>Chat</span><i class="dot" id="chatDot" hidden></i></button>
+    <button class="rb" data-tab="teams" type="button">👥<span>Teams</span></button>
+    <button class="rb" data-tab="calls" type="button">📞<span>Calls</span></button>
+    <button class="rb" data-tab="calendar" type="button">📅<span>Calendar</span></button>
+    <button class="rb" data-tab="outlook" type="button">✉️<span>Outlook</span><i class="dot" id="mailDot" hidden></i></button>
+  </nav>
+
+  <section class="panel" id="p-chat">
+    <aside class="list">
+      <header class="lh"><h2>Chat</h2></header>
+      <div class="search">Search</div>
+      <div id="chatList"></div>
+    </aside>
+    <main class="convo">
+      <header class="ch">
+        <button class="back" id="back" type="button" aria-label="Back">‹</button>
+        <span class="av sm" id="chAv" style="visibility:hidden"></span>
+        <div><b id="chName">Chat</b><small id="status"></small></div>
+      </header>
+      <div class="placeholder">Select a chat</div>
+      <div class="msgs" id="msgs"><div id="threadBoxes"></div></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="bar">Type a message</div>
+      </div>
+    </main>
+  </section>
+
+  <section class="panel" id="p-outlook" hidden>
+    <div class="ol" aria-label="Mail">
+      <div class="ol-top">
+        <span class="ol-logo">Outlook</span>
+        <span class="ol-search">Search mail</span>
+        <span class="ol-av">SM</span>
+      </div>
+      <div class="ol-folders" id="ol-folders"></div>
+      <div class="ol-main">
+        <ul class="ol-list" id="mail-list" aria-label="Messages"></ul>
+        <article class="ol-read" id="mail-read" aria-live="polite"></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-teams" hidden><div id="teamList"></div></section>
+  <section class="panel" id="p-calls" hidden><div id="callList"></div></section>
+  <section class="panel" id="p-calendar" hidden><div class="empty">Nothing else on today.</div></section>
+</div>
+<div id="toasts" aria-live="polite"></div>
+
+<div class="deck-modal" id="deckModal" hidden>
+  <div class="deck-box" role="dialog" aria-modal="true" aria-labelledby="deckTitle">
+    <h4 id="deckTitle">Password required</h4>
+    <p id="deckFile"></p>
+    <input type="password" id="deckPw" autocomplete="off" aria-label="Password">
+    <p class="deck-err" id="deckErr"></p>
+    <div class="deck-btns"><button type="button" id="deckCancel">Cancel</button><button type="button" id="deckOk">OK</button></div>
+  </div>
+</div>
+<div class="deck-view" id="deckView" hidden role="dialog" aria-label="Presentation">
+  <div class="deck-bar">
+    <span class="deck-title" id="deckTitleBar"></span>
+    <button type="button" id="deckClose">Close</button>
+  </div>
+  <div class="deck-scroll"><div class="deck-stage" id="deckStage"></div></div>
+  <div class="deck-nav">
+    <button type="button" id="deckPrev" aria-label="Previous slide">&#8249; Prev</button>
+    <span class="deck-count" id="deckCount"></span>
+    <button type="button" id="deckNext" aria-label="Next slide">Next &#8250;</button>
+  </div>
+</div>
+<script>
+var TREE = {"root": "a", "nodes": {"a": {"id": "a", "kind": "colleague", "text": "heyyy\nhow's it going", "children": ["nmvr43vwow0", "nmvr4610zqp", "nmvr46c23or"]}, "nmvr43vwow0": {"id": "nmvr43vwow0", "kind": "player", "text": "Yo, how's it going?", "children": ["nmvr45o0pb0"]}, "nmvr45o0pb0": {"id": "nmvr45o0pb0", "kind": "colleague", "text": "fiiiiine\njust bored", "children": ["nmvr48a1m2n", "nmvr48jfe4n"]}, "nmvr4610zqp": {"id": "nmvr4610zqp", "kind": "player", "text": "Hello, how are you?", "children": ["nmvr45o0pb0"]}, "nmvr46c23or": {"id": "nmvr46c23or", "kind": "player", "text": "Howdy partner!", "children": ["nmvr46jej1x"]}, "nmvr46jej1x": {"id": "nmvr46jej1x", "kind": "colleague", "text": "haha what\nyou become a cowboy or something", "children": ["nmvr470zp49"]}, "nmvr470zp49": {"id": "nmvr470zp49", "kind": "player", "text": "Yee-haw, yippee ki-yay!", "children": ["nmvr49pncwl"]}, "nmvr48a1m2n": {"id": "nmvr48a1m2n", "kind": "player", "text": "If you are bored, there is always work to do.", "children": ["nmvr4iu4r5l"]}, "nmvr48jfe4n": {"id": "nmvr48jfe4n", "kind": "player", "text": "Yes, me too.", "children": ["w_party"]}, "nmvr49pncwl": {"id": "nmvr49pncwl", "kind": "colleague", "text": "haha wtf 😂\nis that cowboy talk??\ni can totally see you as a cowboy", "children": ["nmvr4a01a71"]}, "nmvr4a01a71": {"id": "nmvr4a01a71", "kind": "player", "text": "I can totally see you as a cowgirl.", "children": ["nmvr4bf62qd"]}, "nmvr4aozfk2": {"id": "nmvr4aozfk2", "kind": "end", "text": "RAMONA IS OFFLINE.\n\nSubject: URGENT: DISCIPLINARY ACTION\nHi Stefan,\nAre you free for a call now? I need to speak to you urgently.\nYours sincerely,\nRudolfa Dangerton\nChief Human Resources Officer", "children": []}, "nmvr4bf62qd": {"id": "nmvr4bf62qd", "kind": "colleague", "text": "omggggg\nthat sounds so wrong", "children": ["nmvr4bwq4oa", "nmvr4db6n9z"]}, "nmvr4bwq4oa": {"id": "nmvr4bwq4oa", "kind": "player", "text": "It sounds so right to me.", "children": ["nmvr4ccmc4g"]}, "nmvr4ccmc4g": {"id": "nmvr4ccmc4g", "kind": "colleague", "text": "ermmmmmmm\nok\ngotta go", "children": ["nmvr4aozfk2"]}, "nmvr4db6n9z": {"id": "nmvr4db6n9z", "kind": "player", "text": "Haha, why?", "children": ["nmvr4dgio79"]}, "nmvr4dgio79": {"id": "nmvr4dgio79", "kind": "colleague", "text": "come on!!\nu know what i mean", "children": ["nmvr4egdi92", "nmvr4emy4rc"]}, "nmvr4egdi92": {"id": "nmvr4egdi92", "kind": "player", "text": "I have absolutely no idea what you're talking about.", "children": ["nmvr4m7mfdt"]}, "nmvr4emy4rc": {"id": "nmvr4emy4rc", "kind": "player", "text": "No I don't.\n🙃", "children": ["nmvr4m7mfdt"]}, "nmvr4iu4r5l": {"id": "nmvr4iu4r5l", "kind": "colleague", "text": "captain fun strikes again", "children": ["nmvr4j5ppgk", "nmvr470zp49"]}, "nmvr4j5ppgk": {"id": "nmvr4j5ppgk", "kind": "player", "text": "I am serious. You should get on with your work.", "children": ["nmvr4jx54cx"]}, "nmvr4jx54cx": {"id": "nmvr4jx54cx", "kind": "end", "text": "fine i will\n\nRAMONA IS OFFLINE.", "children": []}, "nmvr4kqw123": {"id": "nmvr4kqw123", "kind": "end", "text": "RAMONA IS OFFLINE.\n\nEmail pops into your Outlook saying\n\nHi Stefan, are you free right now for a call? Please reply urgently.\nRudolfa Dangerton\nChief Human Resources Officer", "children": []}, "nmvr4m7mfdt": {"id": "nmvr4m7mfdt", "kind": "colleague", "text": "haha ur so innocent\nits cute", "children": ["nmvr4me412f", "nmvr4qn9z4s"]}, "nmvr4me412f": {"id": "nmvr4me412f", "kind": "player", "text": "It is not \"its cute\". It is \"it's cute\". Do you actually speak English? Or are you some sort of dolt?", "children": ["nmvr4pydyww"]}, "nmvr4pydyww": {"id": "nmvr4pydyww", "kind": "colleague", "text": "err wow ok\nsorry", "children": ["nmvr4aozfk2"]}, "nmvr4qn9z4s": {"id": "nmvr4qn9z4s", "kind": "player", "text": "Haha, what can I say?", "children": ["nmvr4so985g"]}, "nmvr4so985g": {"id": "nmvr4so985g", "kind": "colleague", "text": "so what are u up to", "children": ["nmvr4t4p7gx", "nmvr4tkkpq4"]}, "nmvr4t4p7gx": {"id": "nmvr4t4p7gx", "kind": "player", "text": "Whiling away my worthless life.", "children": ["nmvr4uo645z"]}, "nmvr4tkkpq4": {"id": "nmvr4tkkpq4", "kind": "player", "text": "Just chilling.", "children": ["nmvr4uo645z"]}, "nmvr4uo645z": {"id": "nmvr4uo645z", "kind": "colleague", "text": "haha\noh btw i have a secret\nur gonna be shocked", "children": ["nmvr4v2625g", "nmvr4vj6pvi"]}, "nmvr4v2625g": {"id": "nmvr4v2625g", "kind": "player", "text": "You're a member of MENSA.", "children": ["nmvr4w8vphr"]}, "nmvr4vj6pvi": {"id": "nmvr4vj6pvi", "kind": "player", "text": "Please tell me.", "children": ["nmvr4w8vphr"]}, "nmvr4w8vphr": {"id": "nmvr4w8vphr", "kind": "colleague", "text": "i put a password on ur presentation\nill tell u it if ur nice to me", "children": ["nmvr4xji1u5", "nmvr4zwyz8b"]}, "nmvr4xji1u5": {"id": "nmvr4xji1u5", "kind": "player", "text": "It was really irresponsible of you to do that. That is an important document. Tell me the password, now.", "children": ["nmvr4y4wqzt"]}, "nmvr4y4wqzt": {"id": "nmvr4y4wqzt", "kind": "colleague", "text": "err wow ok\nits \"stefanislame1234\"", "children": ["nmvr4ze3uh3", "nmvr524abq0"]}, "nmvr4ze3uh3": {"id": "nmvr4ze3uh3", "kind": "player", "text": "That didn't work.", "children": ["nmvr52e3h2v"]}, "nmvr4zwyz8b": {"id": "nmvr4zwyz8b", "kind": "player", "text": "Haha. What's the password?", "children": ["nmvr50b0kot"]}, "nmvr50b0kot": {"id": "nmvr50b0kot", "kind": "colleague", "text": "ok ill tell u\nits my birthday with a capital letter at the front\nu do know my bday right?", "children": ["nmvr54ohsy5", "nmvr550igma"]}, "nmvr524abq0": {"id": "nmvr524abq0", "kind": "player", "text": "Haha, that didn't work. You got me.", "children": ["nmvr50b0kot"]}, "nmvr52e3h2v": {"id": "nmvr52e3h2v", "kind": "colleague", "text": "oh no i guess i forgot\nah well\nsee u later", "children": ["nmvr52sbavl"]}, "nmvr52sbavl": {"id": "nmvr52sbavl", "kind": "end", "text": "RAMONA IS OFFLINE.", "children": []}, "nmvr540eaew": {"id": "nmvr540eaew", "kind": "player", "text": "", "children": []}, "nmvr54ohsy5": {"id": "nmvr54ohsy5", "kind": "player", "text": "I have no idea.", "children": ["nmvr55ctub1"]}, "nmvr550igma": {"id": "nmvr550igma", "kind": "player", "text": "Today. Happy birthday.", "children": ["nmvr56avg55"]}, "nmvr55ctub1": {"id": "nmvr55ctub1", "kind": "colleague", "text": "its today\nthanks for remembering", "children": ["nmvr52sbavl"]}, "nmvr56avg55": {"id": "nmvr56avg55", "kind": "colleague", "text": "yaaay! u remembered\nim kidding that isn't actually the password though\nits\nalarecherchedutempsperdu", "children": ["nmvr58qun1p", "nmvr59ag36p"]}, "nmvr58qun1p": {"id": "nmvr58qun1p", "kind": "player", "text": "So what are you doing to celebrate?", "children": ["nmvr59so7ih"]}, "nmvr59ag36p": {"id": "nmvr59ag36p", "kind": "player", "text": "Cool thanks. ", "children": ["r_welcome"]}, "nmvr59so7ih": {"id": "nmvr59so7ih", "kind": "colleague", "text": "i dunno\ndont like birthdays", "children": ["nmvr5a90zta", "nmvr5dmcev1"]}, "nmvr5a90zta": {"id": "nmvr5a90zta", "kind": "player", "text": "That is understandable. Birthdays are nothing remarkable, either in a positive or negative sense, since the rotation of the earth around the sun is as arbitrary as any other measure. But as far as a birthday is any kind of event, it is a negative one. It signals that death is nearer.", "children": ["r_crisis"]}, "nmvr5dmcev1": {"id": "nmvr5dmcev1", "kind": "player", "text": "Maybe we can do something. I will cheer you up.", "children": ["nmvr5e1jkv1"]}, "nmvr5e1jkv1": {"id": "nmvr5e1jkv1", "kind": "colleague", "text": "haha\nthat could be cool\nwhat do u wanna do", "children": ["nmvr5e92cix", "nmvr5ejv1ug"]}, "nmvr5e92cix": {"id": "nmvr5e92cix", "kind": "player", "text": "I want to make passionate love to you.", "children": ["nmvr5ezjzho"]}, "nmvr5ejv1ug": {"id": "nmvr5ejv1ug", "kind": "player", "text": "Why don't we go to a bar after work?", "children": ["nmvr5fos8th"]}, "nmvr5ezjzho": {"id": "nmvr5ezjzho", "kind": "colleague", "text": "stefan!!!!\ni thought u were innocent 🙃", "children": ["nmvr5fos8th"]}, "nmvr5fos8th": {"id": "nmvr5fos8th", "kind": "colleague", "text": "yh we can go for a drink\nlets meet outside after work", "children": ["nmvr5gkgb2d"]}, "nmvr5gkgb2d": {"id": "nmvr5gkgb2d", "kind": "end", "text": "RAMONA IS OFFLINE.", "children": []}, "w_party": {"id": "w_party", "kind": "colleague", "text": "so are you coming to the work party", "children": ["p_no", "p_coming"]}, "p_no": {"id": "p_no", "kind": "player", "text": "No.", "children": ["w_catchup"]}, "w_catchup": {"id": "w_catchup", "kind": "colleague", "text": "ok\ncatch u later", "children": ["nmvr52sbavl"]}, "p_coming": {"id": "p_coming", "kind": "player", "text": "I'm coming.", "children": ["nmvr4bf62qd"]}, "r_crisis": {"id": "r_crisis", "kind": "colleague", "text": "omg\nuve given me a full on existential crisis\nthink im gonna go get high", "children": ["nmvr52sbavl"]}, "r_welcome": {"id": "r_welcome", "kind": "colleague", "text": "Ur welcome\nim gonna go get high", "children": ["nmvr52sbavl"]}}};
+var N = TREE.nodes;
+
+/* Mailbox: copied from the portal's email client, so both apps show the same inbox. */
+var MAILDATA = {
+    order: ["inbox", "sent", "drafts"],
+    folders: {
+      inbox: {
+        label: "Inbox",
+        items: [
+          {
+            from: "Paul Caporale",
+            initials: "PC",
+            color: "#8e6fb8",
+            addr: "paul.caporale@elucidescence.com",
+            to: "Stefan Mueller <stefan.mueller@elucidescence.com>",
+            cc: "Martin Stockwell <martin.stockwell@elucidescence.com>",
+            sent: "Monday, 19 October 09:07:16",
+            short: "Mon 09:07",
+            subject: "RE: Data project",
+            unread: true,
+            body: [
+              "Thx Stefan, Martin did mention you were a big help on his project. Have put him in CC as he is leading on this. Will look at these later this week if I have time",
+              "Always good to have some nerdy stuff to bombard the clients with anyway",
+              "Cheers",
+              "PC"
+            ],
+            attachments: [],
+            // Earlier message in this thread, held in another folder.
+            earlier: { folder: "sent", index: 0 }
+          }
+        ]
+      },
+      sent: {
+        label: "Sent",
+        badge: 1,
+        items: [
+          {
+            from: "Stefan Mueller",
+            initials: "SM",
+            color: "#a4593f",
+            addr: "stefan.mueller@elucidescence.com",
+            to: "Paul Caporale <paul.caporale@elucidescence.com>",
+            cc: "",
+            sent: "Sunday, 18 October 19:05:12",
+            short: "Sun 19:05",
+            subject: "Data project",
+            unread: false,
+            body: [
+              "Hi Paul,",
+              "I believe Martin Stockwell has already briefed you on the data analytics project last week. I have been the lead on this project from the beginning, and I just wanted to send over some supporting documents, as well as the full slide deck walking through my methodology and findings.",
+              "In particular, I have also attached some appendices with further worked examples. You'll see that I applied several analysis techniques that are fairly cutting edge in the industry.",
+              "I know you have met with Martin but if you would like to sit down for a chat at some point for me to brief you in more detail I would be very happy to find time?",
+              "Many thanks and kind regards,",
+              "Stefan"
+            ],
+            attachments: ["Stefan_Mueller_Data_Project.pptx"],
+            earlier: null
+          }
+        ]
+      },
+      drafts: {
+        label: "Drafts",
+        badge: 1,
+        items: [
+          {
+            from: "Stefan Mueller",
+            initials: "SM",
+            color: "#a4593f",
+            addr: "stefan.mueller@elucidescence.com",
+            to: "Martin Stockwell <martin.stockwell@elucidescence.com>",
+            cc: "",
+            sent: "Not sent",
+            short: "Draft",
+            subject: "(no subject)",
+            unread: false,
+            draft: true,
+            body: [
+              "Hi Martin,",
+              "I would like to formally request a transfer to another team. I feel extremely unhappy at how you have taken credit for the data  project, which you had little involvement with. I hope you will approve the"
+            ],
+            attachments: [],
+            earlier: null
+          }
+        ]
+      }
+    }
+  };
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+var DATA = { mail: JSON.parse(JSON.stringify(MAILDATA)) };
+
+/* Other conversations, teams and calls. Static filler. */
+var THREADS = {
+  martin: { name: "Tomasz Nowak", av: "TN", color: "#c2785c", status: "Last seen 10:12", msgs: [
+    ["them", "Hey, did you get a chance to look at the Q4 deck?"],
+    ["me", "Not yet, I'll do it after lunch."],
+    ["them", "No rush. I need the numbers for the forecast by Friday though"],
+    ["them", "Still on for 3?"]
+  ] },
+  angus: { name: "Lukas Brandt", av: "LB", color: "#6fa8dc", status: "Away", msgs: [
+    ["them", "The printers have sent the invoice for the Autumn event"],
+    ["them", "Can you approve it on the portal when you get a sec?"],
+    ["me", "On it."],
+    ["them", "Thanks!"]
+  ] },
+  events: { group: true, name: "Events 2026", av: "E", color: "#7bbf8e", status: "Group chat", msgs: [
+    ["them", "Amara: venue deposit's paid, receipt is in the shared folder"],
+    ["them", "Ravi: Great. Can someone chase catering for the final headcount?"],
+    ["me", "I'll do it this afternoon."],
+    ["them", "Ravi: Legend"]
+  ] },
+  it: { name: "IT Helpdesk", av: "IT", color: "#9a9a9a", status: "Automated", msgs: [
+    ["them", "Your password expires in 3 days. Reset it through the self-service portal."],
+    ["them", "Reminder: the Q4 security training must be completed by 30 October."]
+  ] },
+  fin_general: { group: true, name: "# General · Finance Ops", av: "FO", color: "#8e6fb8", status: "Channel", msgs: [
+    ["them", "Katarzyna: Reminder, timesheets close at 5pm today"],
+    ["them", "Yuki: thanks!"]
+  ] },
+  fin_q4: { group: true, name: "# Q4 forecast · Finance Ops", av: "FO", color: "#8e6fb8", status: "Channel", msgs: [
+    ["them", "Katarzyna: v3 of the forecast is in the shared drive"],
+    ["me", "Reviewing tonight."],
+    ["them", "Katarzyna: Thanks. Flag anything that looks off"]
+  ] },
+  ev_venue: { group: true, name: "# Venue · Events 2026", av: "EV", color: "#7bbf8e", status: "Channel", msgs: [
+    ["them", "Amara: shortlist is down to two venues"],
+    ["them", "Ravi: Can we get site visits booked for next week?"]
+  ] },
+  ed_general: { group: true, name: "# General · Editorial", av: "ED", color: "#d18a5a", status: "Channel", msgs: [
+    ["them", "Lucia: final edit on the autumn issue is in"],
+    ["me", "Thanks Lucia, will read tonight."]
+  ] }
+};
+var CHAT_ORDER = ["martin", "angus", "events", "it"];
+var TEAMS = [
+  { name: "Finance Ops", chans: [["fin_general", "General"], ["fin_q4", "Q4 forecast"]] },
+  { name: "Events 2026", chans: [["ev_venue", "Venue"]] },
+  { name: "Editorial", chans: [["ed_general", "General"]] }
+];
+var CALLS = [
+  { name: "Tomasz Nowak", kind: "missed", when: "Today 09:41" },
+  { name: "Lukas Brandt", kind: "outgoing", when: "Yesterday 16:20", dur: "4 min" },
+  { name: "Amara", kind: "incoming", when: "Mon 11:03", dur: "12 min" },
+  { name: "Ravi", kind: "missed", when: "Mon 08:55" },
+  { name: "Events 2026", kind: "group", when: "Fri 15:00", dur: "38 min" }
+];
+
+var $ = function (s) { return document.querySelector(s); };
+var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+var lines = function (t) { return (t || "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean); };
+
+var S;
+function freshState() {
+  return { started: false, runId: 0, ended: false, toasted: false, preview: "", silent: false, pending: null };
+}
+S = freshState();
+var current = null;
+
+function box(id) { return document.getElementById("box-" + id); }
+function scrollNow() { var m = $("#msgs"); m.scrollTop = m.scrollHeight; }
+function scrollSoon() { requestAnimationFrame(scrollNow); setTimeout(scrollNow, 80); }
+
+function appendMsg(id, who, text) {
+  var mm = THREADS[id] && THREADS[id].group ? text.match(/^([A-Za-z]+): (.+)$/) : null;
+  if (mm) {
+    var n = document.createElement("div");
+    n.className = "sender";
+    n.textContent = mm[1];
+    box(id).appendChild(n);
+    text = mm[2];
+  }
+  var m = document.createElement("div");
+  m.className = "msg " + who;
+  m.textContent = text;
+  box(id).appendChild(m);
+}
+
+/* One box per conversation. Static ones are filled straight away. */
+(function buildBoxes() {
+  var holder = $("#threadBoxes");
+  var ids = ["ramona"].concat(Object.keys(THREADS));
+  ids.forEach(function (id) {
+    var b = document.createElement("div");
+    b.className = "tbox";
+    b.id = "box-" + id;
+    b.hidden = true;
+    holder.appendChild(b);
+    if (id !== "ramona") {
+      THREADS[id].msgs.forEach(function (m) { appendMsg(id, m[0], m[1]); });
+    }
+  });
+})();
+
+/* ---------- tabs ---------- */
+function showTab(name) {
+  document.querySelectorAll(".rb").forEach(function (b) { b.classList.toggle("on", b.dataset.tab === name); });
+  ["chat", "outlook", "teams", "calls", "calendar"].forEach(function (t) {
+    $(t === "chat" ? "#p-chat" : "#p-" + t).hidden = t !== name;
+  });
+  if (name === "outlook") onOpenOutlook();
+  if (name === "teams") renderTeams();
+  if (name === "calls") renderCalls();
+  if (name === "chat") renderChatList();
+}
+document.querySelectorAll(".rb").forEach(function (b) {
+  b.addEventListener("click", function () { showTab(b.dataset.tab); });
+});
+
+/* ---------- toasts ---------- */
+function toast(opts) {
+  var t = document.createElement("button");
+  t.className = "toast";
+  t.type = "button";
+  var b = document.createElement("b"); b.textContent = opts.title;
+  var sp = document.createElement("span"); sp.textContent = opts.body;
+  t.appendChild(b); t.appendChild(sp);
+  t.onclick = function () { t.remove(); if (opts.onClick) opts.onClick(); };
+  $("#toasts").appendChild(t);
+  if (!opts.sticky) {
+    setTimeout(function () { t.classList.add("out"); }, 6000);
+    setTimeout(function () { t.remove(); }, 6500);
+  }
+}
+
+/* ---------- chat list and header ---------- */
+function setHeader(av, color, name, status) {
+  var a = $("#chAv");
+  a.textContent = av;
+  a.style.background = color;
+  a.style.color = "#fff";
+  $("#chName").textContent = name;
+  $("#status").textContent = status;
+}
+
+function renderChatList() {
+  var list = $("#chatList");
+  list.innerHTML = "";
+  var ids = ["ramona"].concat(CHAT_ORDER);
+  ids.forEach(function (id) {
+    var t = id === "ramona"
+      ? { name: "Ramona", av: "R", color: "#c6a2f0" }
+      : THREADS[id];
+    var preview = id === "ramona"
+      ? S.preview
+      : t.msgs[t.msgs.length - 1][1];
+    var b = document.createElement("button");
+    b.className = "item";
+    b.type = "button";
+    var av = document.createElement("span");
+    av.className = "av";
+    av.textContent = t.av;
+    av.style.background = t.color;
+    av.style.color = "#fff";
+    var meta = document.createElement("span");
+    meta.className = "meta";
+    var nm = document.createElement("b"); nm.textContent = t.name;
+    var pv = document.createElement("small"); pv.textContent = preview || "";
+    meta.appendChild(nm); meta.appendChild(pv);
+    b.appendChild(av); b.appendChild(meta);
+    b.onclick = function () { openThread(id); };
+    list.appendChild(b);
+  });
+}
+
+/* Teams and channels */
+function renderTeams() {
+  var holder = $("#teamList");
+  holder.innerHTML = "";
+  var head = document.createElement("header");
+  head.className = "lh";
+  head.innerHTML = "<h2>Teams</h2>";
+  holder.appendChild(head);
+  TEAMS.forEach(function (team) {
+    var t = document.createElement("div");
+    t.className = "team";
+    t.textContent = team.name;
+    holder.appendChild(t);
+    team.chans.forEach(function (c) {
+      var b = document.createElement("button");
+      b.className = "chan";
+      b.type = "button";
+      b.textContent = c[1];
+      var s = document.createElement("small");
+      s.textContent = team.name;
+      b.appendChild(s);
+      b.onclick = function () { openThread(c[0]); };
+      holder.appendChild(b);
+    });
+  });
+}
+
+/* Calls history */
+function renderCalls() {
+  var holder = $("#callList");
+  holder.innerHTML = "";
+  var head = document.createElement("header");
+  head.className = "lh";
+  head.innerHTML = "<h2>Calls</h2>";
+  holder.appendChild(head);
+  CALLS.forEach(function (c) {
+    var r = document.createElement("div");
+    r.className = "call";
+    var av = document.createElement("span");
+    av.className = "av";
+    av.textContent = c.name.split(" ").map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase();
+    av.style.background = "#c6a2f0";
+    av.style.color = "#2b1140";
+    var meta = document.createElement("span");
+    meta.className = "meta";
+    var nm = document.createElement("b"); nm.textContent = c.name;
+    var sub = document.createElement("small");
+    var label = { missed: "Missed call", outgoing: "Outgoing call", incoming: "Incoming call", group: "Group call" }[c.kind];
+    sub.textContent = label + (c.dur ? " · " + c.dur : "");
+    if (c.kind === "missed") sub.className = "missed";
+    meta.appendChild(nm); meta.appendChild(sub);
+    var when = document.createElement("span");
+    when.className = "when";
+    when.textContent = c.when;
+    r.appendChild(av); r.appendChild(meta); r.appendChild(when);
+    holder.appendChild(r);
+  });
+}
+
+/* ---------- conversation view ---------- */
+function openThread(id) {
+  if (id === "ramona") return openChat();
+  var t = THREADS[id];
+  current = id;
+  document.querySelectorAll("#threadBoxes .tbox").forEach(function (b) { b.hidden = b.id !== "box-" + id; });
+  setHeader(t.av, t.color, t.name, t.status);
+  $("#chips").hidden = true;
+  showTab("chat");
+  $("#p-chat").classList.add("open-convo");
+  $("#p-chat").classList.remove("no-chat");
+  scrollSoon();
+}
+
+function openChat() {
+  current = "ramona";
+  document.querySelectorAll("#threadBoxes .tbox").forEach(function (b) { b.hidden = b.id !== "box-ramona"; });
+  setHeader("R", "#c6a2f0", "Ramona", S.ended ? "Offline" : "Available");
+  $("#chips").hidden = false;
+  showTab("chat");
+  $("#p-chat").classList.add("open-convo");
+  $("#p-chat").classList.remove("no-chat");
+  $("#chatDot").hidden = true;
+  S.silent = false;
+  if (!S.started) {
+    S.started = true;
+    run(TREE.root, S.runId);
+  } else if (S.pending) {
+    var ids = S.pending, my = S.runId;
+    S.pending = null;
+    setTimeout(function () { if (my === S.runId) showChoices(ids, my); }, 900);
+  }
+  scrollSoon();
+}
+
+function markUnread() {
+  if (!(current === "ramona" && !$("#p-chat").hidden)) $("#chatDot").hidden = false;
+}
+function startStory() {
+  if (S.started) return;
+  S.started = true;
+  S.silent = true;
+  run(TREE.root, S.runId);
+}
+function addMsg(who, text) {
+  appendMsg("ramona", who, text);
+  markUnread();
+  if (who === "them") S.preview = text;
+  if (current === "ramona") scrollSoon();
+}
+function addSys(text) {
+  var m = document.createElement("div");
+  m.className = "msg sys";
+  m.textContent = text;
+  box("ramona").appendChild(m);
+  markUnread();
+  if (current === "ramona") scrollSoon();
+}
+var typingEl = null;
+async function typing(ms, my) {
+  if (S.silent) return my === S.runId;
+  typingEl = document.createElement("div");
+  typingEl.className = "typing";
+  typingEl.innerHTML = "<i></i><i></i><i></i>";
+  box("ramona").appendChild(typingEl);
+  if (current === "ramona") scrollSoon();
+  await sleep(ms);
+  if (typingEl) typingEl.remove();
+  typingEl = null;
+  return my === S.runId;
+}
+function clearChips() { $("#chips").innerHTML = ""; }
+function setStatus(t) { if (current === "ramona") $("#status").textContent = t; }
+
+function showChoices(ids, my) {
+  var chips = $("#chips");
+  chips.innerHTML = "";
+  var label = document.createElement("div");
+  label.className = "label";
+  label.textContent = "Reply";
+  chips.appendChild(label);
+  ids.forEach(function (id) {
+    var c = document.createElement("button");
+    c.className = "chip";
+    c.type = "button";
+    c.textContent = N[id].text;
+    c.onclick = function () { if (my === S.runId) choose(id, my); };
+    chips.appendChild(c);
+  });
+  if (current === "ramona") scrollSoon();
+}
+
+async function run(id, my) {
+  var n = N[id];
+  if (!n || my !== S.runId) return;
+  if (n.kind === "end") return finish(n, my);
+  if (n.kind === "player") return run(n.children[0], my);
+
+  var ls = lines(n.text);
+  for (var i = 0; i < ls.length; i++) {
+    var ms = Math.min(1600, 500 + ls[i].length * 35);
+    if (!(await typing(ms, my))) return;
+    addMsg("them", ls[i]);
+  }
+  if (!n.children.length) return deadEnd(my);
+  // A colleague line that leads straight on (to an ending, say) carries on without asking.
+  var kids = n.children.map(function (id) { return N[id]; });
+  if (kids.every(function (k) { return k.kind !== "player"; })) {
+    if (!S.silent) await sleep(400);
+    if (my !== S.runId) return;
+    return run(n.children[0], my);
+  }
+  // While nobody is looking, the reply options wait until the chat is opened.
+  if (S.silent) { S.pending = n.children; return; }
+  // Pause before the reply options appear.
+  await sleep(900);
+  if (my !== S.runId) return;
+  showChoices(n.children, my);
+}
+
+function choose(id, my) {
+  clearChips();
+  var c = N[id];
+  addMsg("me", c.text);
+  var next = c.children[0];
+  if (!next) return deadEnd(my);
+  setTimeout(function () { if (my === S.runId) run(next, my); }, 350);
+}
+
+function deadEnd(my) {
+  if (my !== S.runId) return;
+  clearChips();
+  addSys("RAMONA IS OFFLINE.");
+  setStatus("Offline");
+  S.ended = true;
+  endCard();
+}
+
+function finish(n, my) {
+  var parts = n.text.split("RAMONA IS OFFLINE.");
+  var pre = lines(parts[0]);
+  var post = (parts[1] || "").trim();
+  (async function () {
+    for (var i = 0; i < pre.length; i++) {
+      var ms = Math.min(1600, 500 + pre[i].length * 35);
+      if (!(await typing(ms, my))) return;
+      addMsg("them", pre[i]);
+    }
+    if (my !== S.runId) return;
+    clearChips();
+    addSys("RAMONA IS OFFLINE.");
+    setStatus("Offline");
+    S.ended = true;
+    if (post) {
+      var mail = parseEmail(post);
+      setTimeout(function () { if (my === S.runId) receiveEmail(mail); }, 900);
+    }
+    endCard();
+  })();
+}
+
+function endCard() {
+  var chips = $("#chips");
+  chips.innerHTML = "";
+  var b = document.createElement("button");
+  b.className = "restart";
+  b.type = "button";
+  b.textContent = "Start again";
+  b.onclick = restart;
+  chips.appendChild(b);
+  if (current === "ramona") scrollSoon();
+}
+
+/* Ending text after "RAMONA IS OFFLINE." becomes an email. Lead-in lines such as
+   "Email pops into your Outlook saying" or "...that's like:" are dropped. */
+function parseEmail(post) {
+  var body = post.split("\n")
+    .filter(function (l) { return !/(saying|like:)\s*$/i.test(l.trim()); })
+    .join("\n")
+    .replace(/^\s+|\s+$/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+  var ls = lines(body);
+  var idx = ls.findIndex(function (l) { return /Chief Human Resources Officer/.test(l); });
+  var from = idx > 0 ? ls[idx - 1].replace(/,\s*$/, "") : "Rudolfa Dangerton";
+  var subjLine = ls.filter(function (l) { return /^Subject:/i.test(l); })[0];
+  var subject = subjLine
+    ? subjLine.replace(/^Subject:\s*/i, "")
+    : (/urgent/i.test(body) ? "Urgent: are you free for a call?" : "Quick catch-up");
+  return { from: from, subject: subject, body: ls.filter(function (l) { return !/^Subject:/i.test(l); }) };
+}
+
+/* ---------- outlook: the portal's email code, with Ramona's mail added to the same inbox ---------- */
+var mailFolder = "inbox";
+var mailIx = 0;
+function mailItems() { return DATA.mail.folders[mailFolder].items; }
+
+function emailHeader(m) {
+  var h = el("div", "hdr");
+  var av = el("span", "av", m.initials);
+  av.style.background = m.color;
+  h.appendChild(av);
+  var who = el("div", "");
+  who.appendChild(el("div", "who", m.from + " <" + m.addr + ">"));
+  var meta = el("div", "meta");
+  meta.appendChild(document.createTextNode("To: " + m.to));
+  meta.appendChild(document.createElement("br"));
+  if (m.cc) {
+    meta.appendChild(document.createTextNode("Cc: " + m.cc));
+    meta.appendChild(document.createElement("br"));
+  }
+  meta.appendChild(document.createTextNode((m.draft ? "Status: " : "Sent: ") + m.sent));
+  who.appendChild(meta);
+  h.appendChild(who);
+  return h;
+}
+function emailBody(m) {
+  var frag = document.createDocumentFragment();
+  frag.appendChild(emailHeader(m));
+  m.body.forEach(function (para) { frag.appendChild(el("p", "", para)); });
+  return frag;
+}
+
+function renderFolders() {
+  var box = document.getElementById("ol-folders");
+  box.textContent = "";
+  DATA.mail.order.forEach(function (key) {
+    var f = DATA.mail.folders[key];
+    var b = el("button", "ol-folder");
+    b.setAttribute("data-act", "folder");
+    b.setAttribute("data-f", key);
+    b.setAttribute("aria-pressed", key === mailFolder ? "true" : "false");
+    b.appendChild(document.createTextNode(f.label));
+    var unread = f.badge != null ? f.badge : f.items.filter(function (m) { return m.unread; }).length;
+    if (unread) b.appendChild(el("span", "ct", String(unread)));
+    box.appendChild(b);
+  });
+}
+
+function renderList() {
+  var list = document.getElementById("mail-list");
+  list.textContent = "";
+  var items = mailItems();
+  if (!items.length) {
+    list.appendChild(el("li", "ol-empty", "Nothing here."));
+    return;
+  }
+  items.forEach(function (m, i) {
+    var li = el("li", "");
+    var b = el("button", "ol-item" + (m.unread ? " unread" : ""));
+    b.setAttribute("data-act", "mail");
+    b.setAttribute("data-i", String(i));
+    b.setAttribute("aria-selected", i === mailIx ? "true" : "false");
+    var av = el("span", "av", m.initials);
+    av.style.background = m.color;
+    b.appendChild(av);
+    var col = el("div", "");
+    var r1 = el("div", "row1");
+    var outgoing = m.draft || mailFolder === "sent";
+    var fromWrap = el("span", "from");
+    if (m.unread) fromWrap.appendChild(el("span", "dot", ""));
+    fromWrap.appendChild(document.createTextNode(outgoing ? "To: " + m.to.split(" <")[0] : m.from));
+    r1.appendChild(fromWrap);
+    r1.appendChild(el("span", m.draft ? "date draft-tag" : "date", m.short));
+    col.appendChild(r1);
+    col.appendChild(el("div", "subj", m.subject));
+    col.appendChild(el("div", "prev", m.body[0]));
+    b.appendChild(col);
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+}
+
+function showFolder(key) {
+  mailFolder = key;
+  mailIx = 0;
+  renderFolders();
+  renderList();
+  showMail(0);
+}
+
+function attachmentBox(names) {
+  var att = el("div", "ol-att");
+  names.forEach(function (a) {
+    var b = el("button", "ol-chip", a);
+    b.setAttribute("data-act", "attach");
+    att.appendChild(b);
+  });
+  att.appendChild(el("div", "att-note", ""));
+  return att;
+}
+
+function showMail(i) {
+  var items = mailItems();
+  var read = document.getElementById("mail-read");
+  read.textContent = "";
+  var back = el("button", "ol-back", "\u2039 Inbox");
+  back.setAttribute("data-act", "mail-back");
+  read.appendChild(back);
+  read.scrollTop = 0;
+  if (!items.length) {
+    mailIx = 0;
+    read.appendChild(el("p", "ol-empty", "This folder is empty."));
+    return;
+  }
+  mailIx = Math.max(0, Math.min(items.length - 1, i));
+  var m = items[mailIx];
+  var rows = document.querySelectorAll(".ol-item");
+  for (var k = 0; k < rows.length; k++) {
+    rows[k].setAttribute("aria-selected", k === mailIx ? "true" : "false");
+  }
+  read.appendChild(el("h3", "subject", m.subject));
+  read.appendChild(emailBody(m));
+  if (m.attachments.length) {
+    read.appendChild(attachmentBox(m.attachments));
+  }
+  if (m.earlier) {
+    var prev = DATA.mail.folders[m.earlier.folder].items[m.earlier.index];
+    var det = el("details", "earlier");
+    det.appendChild(el("summary", "", "Show earlier message from " + prev.from));
+    var q = el("div", "quoted");
+    q.appendChild(emailBody(prev));
+    if (prev.attachments.length) {
+      q.appendChild(attachmentBox(prev.attachments));
+    }
+    det.appendChild(q);
+    read.appendChild(det);
+  }
+}
+
+var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+function receiveEmail(parsed) {
+  var d = new Date();
+  var hm = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  var mail = {
+    from: parsed.from,
+    initials: parsed.from.split(" ").map(function (w) { return w[0]; }).join("").slice(0, 2).toUpperCase(),
+    color: "#2f7d6d",
+    addr: parsed.from.toLowerCase().replace(/\s+/g, ".") + "@elucidescence.com",
+    to: "Stefan Mueller <stefan.mueller@elucidescence.com>",
+    sent: DAYS[d.getDay()] + ", " + d.getDate() + " " + MONTHS[d.getMonth()] + " " + hm + ":" + pad2(d.getSeconds()),
+    short: DAYS[d.getDay()].slice(0, 3) + " " + hm,
+    subject: parsed.subject,
+    unread: true,
+    body: parsed.body,
+    attachments: [],
+    ramona: true
+  };
+  DATA.mail.folders.inbox.items.unshift(mail);
+  $("#mailDot").hidden = false;
+  if (!$("#p-outlook").hidden) {
+    mailFolder = "inbox";
+    mailIx = 0;
+    renderFolders();
+    renderList();
+    showMail(0);
+    $(".ol").classList.add("reading");
+    var first = document.querySelector(".ol-item");
+    if (first) first.classList.add("mail-new");
+  } else {
+    toast({ title: mail.from, body: mail.subject, onClick: function () { openMailNow(); } });
+  }
+}
+
+function openMailNow() {
+  showTab("outlook");
+  mailFolder = "inbox";
+  mailIx = 0;
+  renderFolders();
+  renderList();
+  showMail(0);
+  $(".ol").classList.add("reading");
+}
+
+function onOpenOutlook() {
+  $("#mailDot").hidden = true;
+  renderFolders();
+  renderList();
+  $(".ol").classList.remove("reading");
+}
+
+/* Click handling for the Outlook pieces (folders, messages, back, attachments). */
+document.addEventListener("click", function (e) {
+  var t = e.target.closest("[data-act]");
+  var act = t ? t.getAttribute("data-act") : null;
+  if (act === "folder") showFolder(t.getAttribute("data-f"));
+  else if (act === "mail") {
+    showMail(Number(t.getAttribute("data-i")));
+    $(".ol").classList.add("reading");
+  }
+  else if (act === "mail-back") {
+    $(".ol").classList.remove("reading");
+  }
+  else if (act === "attach") openDeck(t.textContent.trim());
+});
+
+/* The attached deck: AES-GCM with a key derived from the password, so a wrong password fails to decrypt. */
+var DECK_NAME = "Stefan_Mueller_Data_Project.pptx";
+var DECK_B64 = "8oi1YjM9/SWrUJ5DhWIu4ArBIYPVx7BMxClu4mtCcWB6o/dobD7ncnTdpPAZHnKyfL/pHsjNshC7/t8ZPJwYbOdjdOMi3ov5RQGh4qM1pjYycse53fYyhXTeyStXFPRRUYPWiTIowIQpZAb61jsQZWuG82tsfgJkKZfhkoD6pEqHUTaU9aq+zh0IestmqNj79uMS+euOBCVOuNA8S/gSQ06IPe95BmSDwMNsSPyoM99oFy8U538YG5ymDUiv0QZFhrQ37fvH8tJD98neyBNvyJ/IQ7DTZhkV6xwHDJHUdk5fH3FVySmZvtG6t2IwYW9lYjFa3nOxY5k1SBI4cp0uJlAFMkHQQodsTM1Y9Hzx1eHZ+HQELg9oRgfO8Z8DZZZex96dCeuu/gRblCdBKiWvHfIDMuUhred4V3WfYWlCE79ph59sdt1U5cgyorlWIgyLbg9036ZV3PAPMa/rtZHiVKa2+NIomHnbShITuqZK5rTTGXntrHIlyUUsu1OdF1bDpDUArmZzIqTFJ3yli9uA+mDrTGyuYkZeeGZA80QkC6oGFiJCQPb4m7n6Vus8LjVh/lmCb76l7DKxXmnisOzj+WPXNNpVpkyKi2l31s5fVnURorKPhZuuE/QaEx8HckaHxng6ATlPNlB71EoPfkQP2VUNgkWfamN/7NjFeYi1ZebQCsERboxYKqiCQ43YqJ2TXQIUbtg9p21aA75kmmGuBW4ej8+0UwrsMMWvOx9D/Nobp7CDF0ZvdpXkMmKS8IFbQ4gkjdVvAkCe7NKEg5g4PqQnZCi0TAtUYD5tMJHgwYLQYEMy1ef9H8E25faejO44Vd+zZpuTm7Hn179zd7groqgq3hF9Pjh2PvhIo8N6HC6+O3GeY/peSazdkn8TklnYf0VQrYCHjlVwtaSSTnKjBkZwV2qpuNnmDWzlww3wqlLB8MV2BisinYVcplVTCxPa3g4CjksyOSGvShLkA+I3wRsUDVMDpE00WzMKBlFV582k9NjnDXH9bPTYgWou0v+Gl1Pbcb7CZQpnKnJPMnba6BoDgPQjI2h0LyvYMI2Lr7ANwWzNYhtuAsuBnmQpTvS3WvfxwBnWboYANdxqtsj33pdTr2Ie65sibRnNs1IwLBNpLe0UW9jiXzqzvPnB7ExDPLXEYub+1A5zUy2ustUDWeorVOUtMF45mnHIVBWCwvklqdem3mFrs68aDvAj8B41zA7o1imUo5GvO3vtSJKLaGpsHb0XjnQvnrbawZpO2eN1HzkgbpuBQdtWJ8mjwGWiRqCAXXQ9jFFFMUJqehQh+AbGH9GnQ0CrdhiUhmeaSRtnXx8RLwITYHhae67+tSzKiAyY0C77rKCYJkmnKcxfIzk41baqgtg982NaL8qlfgsy1rhSGX+hy7+OL4Jyc3b7pAHajHBl3VDOad1ZWScE3fp1/qluZZtI2Z2Wp9AGdxW/mFql312Me4EH7OPtKFmM5GEeMpmOB8A0qe08bCa/g9ZmN7VGm2dmRVG15SvSElpdg4mT++QPhq9KvX6O8gdXN1LTid9ySNWkR26RzKD7YwdADuWWVA93kYHZKmJlNGsiwLUQTtQEboCaN/aEBMfwSYAuiPIQwP/eoHlqqGTJh4z2vjdXh4rtKXsyCJRC5mkAMAgoyjnHPdACGZbYvAi2EhtHJLsOWhlBXMveL4k8Kg3K9TZW00mjXXhF3tBxRKh9XoO1hxr/h2uaM3Hyb7tWRummYDcaXx2Plql3kRlSCUz/k9mDabXUTh/Tk8xS3VI1+dnllUPbq/0BdOtUv6uC44qXBC1aIdQg2UCz7c/BG+lcaGPzJxaK/Qfloau2+aaBY5TZTNfPJ8GHbf08zHnxcA4Vsorf9OFEs5MczJ/svVz3VdWQxcyPwvFJFlbCn0k2P0b0aNDvVJMqWdXrovc+CVejAc4W3LCdG9zVVejma4MTda85OsTA5dBIr5PLdCW9ekVccwMCTJ2LrtJtT6FDtCWZqMC4JYsGV+ZtoGLPfckO3xfoCi0xHR7Iu3p0b6ragCQcM5mbF/CYbm+P3Wxnsd86rPKaFLfs+S50jF36WntGoy3QMkMwGxP44iDL2VanzkXgF0sj/EJIgkoqCP29r8hToo1HLuWExjmvxN9rhH1l4jyqfajE2vdp6pt/admCJ9wSmTUp1nYhBB33+VmGWDx2DxjrITBqWpSqjxbMv9R8AVPIHAacT2XWK83bLBscMvKp09gTuV11LIIEsc4DY0P4q395emyO1Y4owtortKJfPNDNIfdRGqVdH7qtbLfkY5Iy+Ka25x7yIh0JUNoWMj2V5s2W17/dQ0Ns5fJJwjfJhjnpH2JisMPw8wNXWYMt0kItWN/mUbMVJFRN0AE8paJe/0399shUxcbOcouWCNHKHVNtRxA9i1dWP9JMRKO7yeETNcUqV0oQigDBWNjFnRaLUdK7RX9y+s+jl7FXLMeH5YceUvTCIThbDd1IAGFAQTGNeH/EWfm6Zs0Wn+P04ojvogVZkQmuNgdqNBvWklf5cBqRy5Xvnn1+Svv4c1zKEnEuPqULodtgZ2hKqTdlBJ1146s814aB9juKMMEnAKfb3g/3ca6R7BtelWr5Flyx70qVbVyaQQy3jj1f3Q51FNuoSFV9KONztfWPpWJFDelelJXBULlt1svR5ZfIlc05C0tHrIilJKw+3sgZPXgGZQDzRK/rLLmw70zHhoHT7I8H20YdYZZdKTYwaGia0ZZHZnj19NevgpZ3U5kTwIrDi3z9k0Koc1Jbf5W0DuBpoFMyIJ0rAXVii1YXGSz1j85wdnLsJqbNBsy3fQZ3gyG+crzvW45cOjgWgrmHFUm7c47bfd8n3qyTQj4WrOj6oWMflSCCif/9HaRHcLBWaKn04NepjWRbssK8L9zH54bGa4kucKJaTKU7thI+fXDf9Rz/VvaY9osLjC7aEPtq0HHDlVmONm/Tun4jLjFzFvDgbDFis3k9t08Rhm42QA9cXRRGAS2lwSj3fVB6FunvrUYF6Ca/X/9Q/lcuaDTlpxZc+wZ0Twt6CDppf+9goCGj+A4mALT6HzSnJs9pfWp6XDj7KkpRHJ32RN6kOwGzRqD01zYPIs8b1+C7uoOgCvbZCftNsmwlMrNnxvlXnVHDYa/ttE3hyzfDMHiJD7VvWn8D81f1cy2qYtolSeyGsjBI5J/Ro1BT1/L5AJmebkQl2H0PYTSM4/55sEJIXJ1lWBspit47S1jSKG8IakzsGWjgl7bswFBWXLeYqESoXjQ8I3/eBZtNSBJEWpbFXMqEng8s5k203kSher9p2f9ZLFns6xwuEOUzjtGs+yI35bXZvh9Nj5JR6npq8ngJ6KDSeH0p6oSa6nstcXZZiaPGLOKCbEVlu+0l8R56ivVZ+EW5UxS+hBsDxwhBLHeTzUf8sIidA2t8U/B9lLZ6QjRrWJ7wq3h3DtaEXStVWmC/GTAXG0ejEuh4GcMGAIljCWCXw8oSJyK3YW0CPqfwUQkejbNyoY1gTXd6a43kHpW7nJt/t/LQFBCFYyF+qoRp1oMk5NUIf237GGhHYReY0Z6odJR2XZCvkTS/XoYr1N4Gdd+TI1hTa30JK8AITWwAUgyoYNWByEHHC2sw7K176zdSDE7/3NZaUPPxYpueOSkX59hRjJWhUQboWdmORQqIEunurPNkC4MASLn4u2YBt3NxqFJ0EeHSiC9qLzpIdg4eQNAPOIp2CEpZEIU9+jqN5FgfoyAApD9wJLgtQuaFLjCUEYjd+ZxQNNMKw0LEpc13dbqvDrWI4ax89eqBArAJO5AlIc5Sx9LrjeckIkUjBmlppd5pCe64tuRpBERB/l0QTpxygnli9iFasSDYpSB4dih/zUtGs6DFt4GOMMpkBBG/5usFVo+DH4MYt+2XheV7nDNo2IqN8naC+3Mdt0c+e4vYLk+8D1DxpD9Tfk+a/WpZ9OlUfpxUhfw5HgC5AWQetTX59NRPl2ol/sAI6CWzTUoJTDid3rV1T254cLwm+52NjyeK5cJwlOr7zBOMwgQ9dhQKHiJfqMsOtQvOEgJ/gazZ4Eb2OCMdZL5Jfp0fRRbD0KEx6jvU72DDPFBGdIs2M48kRTNxRjMx0J4ukV+Ho9nTqrpWNsVs4vqisrKv9s8UNE+/6675A0NgLSsvaTki5o8MDN9EKLg2koqeD1F3D1r8phPMcQFQTCbXmx4D6x4ffQ/x4jB350pIxCa4M1DszwpgT2HfSvjD5N+EBkylZCZRD29HTZPWtCks2jyzSGSkL5gBCOfOYPidIcX/bJh2Yd6gu8zU7A8e5FeCGsy/h8KtcUb89EUGRI56W56ZKSE93+tQYzBTCOn9brjLjSEVdsXSBqqnbsHvYBzHfuzFB4FcxKVZRJPXnC+32MZlBf4bcPew9Zm+21ce5DQ5u8IVdvzwhgux+iprTdTXjId8Q7C6q6MOmzuSIkw9l9qff2YHCZZ5jQF0gGh3tvV38/zkzEVStBGXrLrefCNCVxk9tJsyv47OrSzZJGrm8tziRHx44AAquojnSBwEwhShjgYcvAJEiwsVYuU1tmkWVZvFNBD/9mcXFQamJ4wy8vqyyJ/UrQGvlPj0xVRGAoRFsF/CNvZckDo6ZpXxrNyHs+qAtDQ7vvLWGd9scmGOnboJonbEufKU+a4iaynnzGGvTmjN125QxydY7+whz9YTbvHru6EBLukIQT2+Pkoai+Jqp7jp0usl3Nh8LZNDHqgxnavM2lBuYcCpTi83U4uY5X06m52m2eFL8Spntz/Ej9fVLxTuukeaLZ94LSGr5xCpjoBkJ+V7FMI3uN9wQpwZ2m/sGI6fAUa3kKEx1Lam4ft2d8HoFGjHE+R5mrIfXtMsB8wA8Y2Ru8dNzHl2hVGR/Zs8v34Y5fvQqnwjtGO1tvDbiD0osOkOQX4VuEesUYRZp1rA6kIyfT1XX7ynPtchSUNc/aKg9oyle0EqOKFsDMOLmG3Q6iXjjIEkE6Yl7nwuR84KPgZsateAfqLPV21G/LBzq7kB6A3FJsBLHbfbj5DwOEvig1pR3aEsF0gWgH1RgKovBiqpoCpGjSt4kvZVV/Vz+HK2QjHkZPIQgHY9ZAG63yp/FVNg+Wn/AO1qEWI6hDyLlz+/G7pB2giMapJwiSdshHOHJshwHFYR3c5dwFDM/Fv3LIQTed1Xm8IfxbHQCtAZMmJE6wWNkMq6fuqKP6Ykj3Sb0ytvqUSutVg79EQv/CuuXDUzdiAf4Qo/m8nwqmbtSZde5Ocz4FMkUwNNL8EDcSiM1YHp1tyDNd+xbCPcN5xi0EGs5aoXXZ0Ev7W8mcP9j55eU6X5SB+im6ErktHOFxBYWm+2/31S5qg5x27OvBVWsGpWcZKOD2kC8aZKuhwgzVztTvceI5XTrvqF5a6Aa3p6+QvoPxGPWc62zUtvLpJCijIimCvwR6Yf15EVt/0g0sfVgfpW+7ykhLGLFqw8xTFiFdAmxo4UWXIMfaPm39CR8rNxu7jOCspkJ9bysf98ojxgtCnAEQOx49G9juFPqPbSCOUVnNtyFUux1CzVKOiY069ZmTBjR1cuKyVY4ufkPZEdXwti+LQ8j1Wk5lNXomNr9mJV6rCIV2B1eJWfVRM52R2acU9rEYyH2n0JcRjHmDcy9NBWWc0Egau+gwvsUXiXKWn1KAwoDTJp5bQILwQ0XLsywsgqrRT1TakgQFpukiqMzIrEeycH+432noAY4Yiv6qfD48JtSWyQfKe25+vsLS+HLKr7NCeMMUpl4lzqIIHOpoCIUx0yMPro4l0vMJTJ+bMWMC5rH8Hjm9keUlM5PWcWNUYjq5W0FOALJO0ZQIQQnkFKyt+qOmRXnLtiuaI/ZGdb2lLxLUfmMaYAVwjuKZ1lEaUs0PEM8FGAD43smTnRY82XU7x5buyQF7gAVZw7GfClki5zPbWRuvoZ5sEKi7DjZHSIjxYeD+jxVZc+VYYu41pxs5BOlTw2PIX0ymOyNnO/RabhKA7xgH3CSvI6FdAignzcVyf9ZWggBHWFQhR8n9Rpbgp2suIPbSoqZEhQrM+AGwUEG6v2XbLngt/L7qqV7rO3Vy4/QViqkUHEwk0gN2vN55ayrO2NWBYTNPeKd5TfgQwcr1OM4FwLgOROLx7hSW9cfaBwerdLwRrPIkvDlLp8I/qRMU6W/vnUy6hh73SbEVsfDrQxR0eV9iUmFUZtzXXl/GgUi8m24uAKKM4EapVmk1JoG2Sp/chDb/2qj2UEUBo6Ai38D4qVAM6fsnuxNBAgas6vHeq+g4iQDVkRHWCsg1fmdRpn/WeYJYjDYxeDIkra5aAn0uibSwMC/4sSt/bmTxH5a2vlTtJoEf3vlvIScsvzc066zv7PTyaaTTJYjDyvJmE4W73WgN4wlw3e78Kuhdt+jtHg51KEXu8iq0Cz9/vdupqvYL6fR2Yj92yZZuaYBHiHpznVpP8Lj2+YEwwpfFk2iIFDORTAlWw1IcMGnAeJ8JtREr+HXumkeMW0UaGl7ZYK/0B3Z8oNZhqp90JpvPeypc0YURxkgyy8LqH7vwXMcI+QT2PZcUZoBeXk2r+wgtw52IXtpAUd4sgkTirW6QL7npjqroJt+yLuupBuTiTrX3pZgN85nWFWpBAKABDyr3Rxqe5gNNmPCee7gF+eS/cuZSHDymymyd+INFtjnhEUeSd8VFMH+V+XEuBfpPBEz8BjXJ48IoltaPHF/4rqDpBAADZabbSG/RXQYBKlA0fmjrhkq95qP0E+s0WPO1ml7tmb1pTD4hhBNf6/C54YWVHN3deYHkaqXmiBDvNilmtfcsTdWf1K8qkWxy/oxMeIH3CWjv7DIVfifRyXhRHbq4ScHAIYx0Kivibza1T3SuGAADkwe6DrVw2PUzVCgieP5YfSEVoWNyBeJf3qcGZ78T23RntiQa5G9nqY12SsIv3xN3JJBlxcGP+Ay1Jev3qDBygQ0MXb4srj6+koWonJVD0FHPmKvpUMBGYgsjYXda0ephzRmpeHeRb+MpKUG6S7ACvGLkJE/DwIEkzqe44Rr34l5ba11PHszi0+1pCM0EpIQLXnjQohAA20PVeVSSOB33NtFfQd4VdUTTQUKtb1pH/SnDhl48YBjlPo/jViGSY33YARwPqFlM2rSLF02q8Mw1nRoHElsMPamer7RZ+uZYyIMGqlXkt3F2NXwWOw6Xmv1KKpVMNYZE4tPORa7SGlbJ6fKl6p445y4U7qOsCVhR4oqrAhaV/T9wwUVozR9GH3EZ6afvW677DnDIwBo6yWb0gq8LvU+7rPQiKyBIoHSIRU0OjZSakVlpNrUHo6DxKlx9iU1gf/VNm8Y+ny/TfA7kQawg6esbuGQHjHs52TEf8bSzE3kKXK1v8V2hwkXMzVKIY/XDGIs6OqmM91qAkGnr9IfyW60zQ1HG1P8ZXhZKEVFll7icrkTqztC9xHiV6kArfyWcTfBchfAiY9plTjaeoHgw3JeqOXbxvOly4/YQARR+U5jNRpRwIh6ghsPecXTTDLazjaIwyg3R1fOKT85gkgpO4DjgysR8bNSWUF8vW2exif+131BrELzT3ks4DopZW2yeJde+o/2H1tsFTY/MGmBa2YF5To/uP0FhuzVl1Eltbwh7W2kVkbfPTeahqeJIGatLgYBwEtr5IDpChrIPaCfPngo3SJeY1KeFI8PKMNrSV3uUdRwsZoep/JSSTrOwF3+e7mT8K80kB9MXGDCQdnqpj0OxmapUai+HI6F+RtdsC/G+S6SvfafvOHAj1EfzJiIvdtHy8OiY7NbEjQd9K1uy9A1KEAU9mED6gxmbKaZa//qeCDTtLHB0c79FgxQ4xkl8phaOsL6JRNAE8x4yHTzgQFGOCDQ7ozETSKi9zfUXdRHs+B43Lv+4yl6YeJZSdDS5z5qhTrJhB0E+Xx2ZHVfQGqj68ZA/AV/AUj+iro1QCdWPyu4zwlsWLcXLqEKR7WzujJ2JyUdhEQYjq2aCYZ8E1L9KcwV+1gvmmU1wWdY4PC5ecM6kWbgCDmBAeHMiOkFbDuf4k3zBkvrZkH+KlsgwcOt0qqWi9DYQlbGrFDK0uuYQ2pNpUd3J4qhy6CwjGml+EFtFZXRNzKjLRrM4ZO6+Pbd5VK7VSgYJn0Uh+8BxaDmV6oD1GxwxC4ws/RhiCHyYU9TT3swTb0fUIYReBbegkYX70sBOryS0u0jSm74jb/ftvlZQL2OUbZKXYixdlvSumIxo54NAbF4G16kfQTuG7gUiuJLNUFzh7ukK7eQib3HTk4fGMmaiY92Vw/C9POC6vzVbTJ4gaZJHeD577tmNP+hqrQWvtkPNzG/yfyqnrZfBDeRvspNAUnd+yRdtltHULHcpSmEkL4UpfjzpFJCs23NXKEQ19oNpnjg17xEJE8Y0/WRBy60QUvkVtq02alepE3JAi77TsCBVwW4372lVZS1BWcsEIR8SE/3pte1wgRjVvqcEoq8u1YIAndmkqyxnyJJKcGxb5S62ful+vQm8XrGrTZ//g4APkSuYyO42MQ6yKwI9TZRWIybLCJNj1UT9LL8D+gylZhNr7n8CT2EvL5n9EpBIHtrXm5lGjm+v00mA07xi6wpwCzmktfGGSeS2JDyHVTkaDW+U4VVIH028d7gaFkpwQWKU9B/CgTy92Hx1jowymibXoScpbb6AQSKGfJGScdPAQXMiBBVN8b1/HiZP7o0cisC+zl8lGx09pXmeiSZdJVXVYPQN+8xKEx6rhjINSnr16RiJtmrcgI8Ikxq958+rw0niaBL8UEN2wc/gRNvEeKoS4YLDhiRCrg4Vyu26v5497HTdgoANySKVsE39PoDEvHRYzmfksx5ezc2QOExyNZ+zgjZYwGoJMvaGSeXTEgDe6WVaTCByzaq5tKnqMna/rhwuaK8V8Bbbigw/Fzl6X2SV6X+DpT0I6Nmb/DZkqyK9mt1bQBY7NFcuU/ND7AOXMyVBSAq8OFMvjcHx0hP47rLCnREOEkzXEmf9kBKcnPIOhnYA/OBEFBvs4+N/8GoqpyVhRNSbK2iy9cjIbYtu/YOE+zcCW1q0d2MlRDeU/Z+RBH34WTe/q0Z3t8kEzyXyW+/KSX9DogG31glTULlzzLgwUiaF1Io+rSjvIkeOyGNKa0n9u3SdYiG9JH2YZLhfguroZWp79kdnCFBzRfPQ0/P+/26Bie37zyYcng6wXl2ba/rRJRhxl3LRjebSEnvPAxlBzP/7V9iLRDeNGlzTKLwe0WgNsfDQvxZEGAhhA6aEecyuI6p4gCJEhg88rwWrrLHHrVXubHqEpvC+jwPZfTHPS6sTK0fBMVlnfasI4t8qduWdxMgJ/g8NfpK+XHkvbOt7xi+dly77xcKRRZiWgi3cOJ4Gy2k2+NzNo3VbmrXKnPjgBZx5/LY+VR50nyCVTh+FvcNHRZmRWb00MhSWLbge8ElkDW1/gauXqYfQl5OIdEPmO9SjRGWmqehGXKAvu6hq4saD4n4XrQ2g1N/a/+M0A2/KFpLtcQ+RueQWwF+b7udLWQd1m6t1p6qOFiayVqWt4//fmFcLm7F/1YYywS+cGnt2TYejQ5S7+5vm9MWezPb109pzAFWFoCCK9Yx4wXKvTn+ZLJcQfqj/xXK4wCZyr4s2Kwp2xUWs/HOCAsvxhZ+jzWWDkiL6U0rPL+dRUEBBNV7aQ/GCLibX071kA8N02bsNUDjIVmCWJcfcSIXFbzYukTnY2wAWfB28w2rbugcmxAeAlJeZxG5stB6iLTj9UYbz3QFl+Rk4zXhBF6DiN4rJIrRv4go3NOa9Z5/OcX1J5yXh0+nma7JOO9Lp5gsGhy4ekGGneANUCe4vMFYk0/rlBabSTDJrQAl+a8wm6qvMdh4uWXVX7c1FdaUiuS8byTGNKRgfWqH6dOYlniVFJqrxTdxbC0LJmnQXvAsIpA4ufM54YbQM8hvVtco0ZlWBpfyQlhffPj9UBeStGWchVxy8XhDK/oSoTar6XyaEHnMcedDy6lCdq3+fqopYTT8OntqnaSWuxF7jccL+QThh83S8NJXV04uwHkVu1jOvRQWNZIEJ6LrhJQTBunH/pizo1tzzDZ3R6u5ntZjgQjt0xZoeb7K1qpFv3TNNo0MX9jleMlfxkRDj9iw/I/nJui5WXhPWLwaIkLPIvLGSKh8C2VcwK1VJ58a+xhKeEpL0tKdnS5XnxUzGFGyHMfsZeJ7MvC162WWu0H4gytRG8kcNP7/GQqOMzMqEC0P7iT0sI0haj6ziuHQ/e2Gzt6vfWi/yyKe4a+JJc7eE4OBioa0Thp1FsL8K2ICEDeLUtRi4xnwliZ1oNXusUvOwnNDi2JLKWCBK0InganFn2wL6+FDRE6hE1YzlX7kFYoFHDCBCseMXjBBtvEI+cTROgaucG1cb/B2CWN+dJ66xK+Q12hNE9+Ytmnd6RcyJ+LKxzG9JRR2bGX26nMtC7SrY+0e1bLEG/EoxaDHpBwFl+b41HUZWIn03YqfxCJUSaxEIr9jVc/J++huBxqGyHWQTyEZyQLzk3G59Bj7L+M3H9raSWQ6bsdrxsvrEw5cl3y9JFqfnfqeOUy2c47RJmM79qG4+iUW7UTpaJifLAIuFuli4errFfmrKzf2Fz6kumX2xkPN52hNWdAESpPv066BUZMAevinEXNIsqsTQTpuaDD8O838PJ4DqbOuz5sZVsIWmvNNRQkqthaTfvQMq5nGbCm00sMOOB11xwYypVy/3SHCFVpY9oNRCaLcd+VAwdh8bMzUxjeLw1aK5I92+KUnZffDHEIIr1VUF0Dw4rIxk9KtO+oxR1WVCQCD3QqXgkqWjkPr+duNktG2jcA/2nzHDp8wfpZCyGGpnkzNUOklt7CkGTBFa6w+6FE7Aq2rUPIMiVJHc5VvAfq+CLs1VpHJnVSjxr3AnQK0Ts9kMSr3YmVXs0UES8KMgwtFOB9fuUqCyMGrVy2H7sywAX0CHdeGvRssvTSv47glo3PC3nMbz300IReiP1GQdVNZXe8K5XtbrPTdkvvkQhCgjs9Y9Hi4RdMTcGTe4V6Me+8+mhIy1HxYsxUh4qsfJ/C+MhZjUC5E0yfDeqeRKPIomLPGJzOH4hKk/o6pQhzSxKxOBlB/1TOOyUDaQUK/iVDdfbV57dbByLZyY7vvAzTqlXXFuhAtmRB4pDwyUzGy0geSpLX2/cI8MADocgpESBggsKRLS3i+rQC8D4If8GFUv5YQrljXAbs7OfhPH340L1ACNM2FXqLqic7VpYrkFnvxX2pFhlh1DGR0LNnBWEMA7SvSLP81U0IwqBu1OH3tmvp9qri5fD+V5U5Wa8XnKRorViulNj1yF4ZlxurxgnQONRDm5R1o3uzH528plavgpjJpNzD8Ra+u+RRMs20BAG3XfkTOfa6S2HazKiWRmulxvEZWeBaZpgX9kTxKohupLMyCGsPwhQKiov5Nrm7iNkkJCuAPQGv3b9358QuU6bPu1mjgeFkuk1KopE7c4yHEdRlZ1ktZd9iQMjvgsMq9oRDGhtZFZHvzuUjpam70cvsPjNzCixJ8++gY7mjn08TrVcU316EJqDtGxdotyWsmAlkySA5B9SY5TGgVE4pqzFvtohTT773MKKPezxrVv34a90e+GFDY3tADZr9uny1oeIXTQpHpsjJHhhnFNZJ0ZAFiWiqeC8YwzD0vnzP/HwtOI/Dlms+TQ5YsxyuefnPAhPwC5IQ3vgjbuTt1k5Z+hOP3pqLF5+cUj9wB6JtTIAIRPIWHls9P/F8sAzNykBYAySQlWeqi75oWlzEp8gkKw5la8ty1PzQZ57UHENL+FI40gP/3OilSMHo433KzP4lqT1Nd2t1WzGw+0DZ8uR7gk6aYNVwFIPTJiwV+YOt4N+/groB2ENxbGgtQaJuI02r/C0rkT7Apg9wQmv8OtIva2I6a8tlks7RYhKfUdUfwdc1wNjwO15neCRWBkhyFTWtVoFBbHzqXyAXYpgAbGo/avOBp67sBNe3ltcn5IqFiVN1VjaMpGK0XF+dr6X8gS9RwFkGWBxpjvbX5WXL2iZ6bvQHL7SqLbTtXPi7EX8ranO/ql6Jz5mePws64oOsH0u+zDN0QXiaFzaI/HaJMU03DbZUv0dI/WDYvgTKRBJhOAgYS0zm+8Bspi8Qxf0tnHH4sdT7uZKiVLbqBRJ0vWT7BHlhajTS4dRF2kYNISBRxjzq744VWUFcn/wTZZtcEROBoylOx4USsBgtQTcDuINqGOfjQ2CyE9h/ebJupuHIgAujQ+dVNz33Zr0RUlMAZav++yP+z7WP2oRTyUgWZ0P0iytMIo4NrixegBuXxYA2uA+1HGJwE7G5DFtESGLthji6ibT36WQSBD+HJlcodbUw5CIoC4J+EkFkhptJEUWoofLGMtV/lyZ8WEvVDKEitTGe1Vh4405nicaQfKwIevLJx5A4UOkD9sjRUfew0DNsHouIsNOFmgEzEz5IP9m5KsFV333Pwuu9Rp9EYhoV6VUtBmEQxl0BZXdAgTNGYBvlKPCIFaac0I/N2M4zntEWpjZM1BR56OfcogiXd/IjocZkg+wtUgqhM/4uxqBpay3TpvlfboRl76tIfPohL5Ehqf8PPuw7mt/5crpZqJkaU7ecgounz63mbATCWRM0KXYyJSVBVQmKPc10zOnfMqhp6rRT0jC9tnvAxBawiAM0SFP6oOZ/B8itDWNJq73pLG8MG1SNhbJT5sReZlcAs8yqyVPZzVv6W/LutUrjAwLWvpEooRQ4jm7vKTDP4ARyLz5d3y6rb4ohs62V5DKYPSK728DAu28kER1HVdl+3E6RXpYJY6IndLdkbQMvXG8Y7CJL7rF0AojzSp967PNMMKfQRGKCjEOc4vRJFmb+I0ZXsS+rH/Eyl8zpPGBFoTCv/GFxdhyhUiSEfX8wBaYe7jXjZL94SwpNqhLQOWrUepEh3sM3ziKQleSX7wAI9Kw8Png2UiVFwt7RtQqBgprWWZ+V7eLcfAsdHyNnuzLRF/f88q0zMcNuNug7U3+16Ju6COmM3XRGCHvMkTthTQ00O3lC6P6Ukm1FRGPFjF3rBkzE7m3fQRy11IzlS17325X9JUSblPrZYmpMoZOiKkGc1KlEv8EUv9DKG69BsKQxMVh3Ea31aSrmT1gVX6mw2UhOk/4SIlbEkt0D9tOdcJM9U8tWIOrssN9kYB2BgcGVJE7ziiwnsvmeVSqE72e3KwslDahWN/n41a9In+0KDLNAOyu80hQU7Omd3pUNs55ro0NOqX0x+1eziBfD38MQ65wx2dFmvXP20c4epb/FKYuXEazj0eHGJU74A55Hvjh5ZhnEIr2aHg9D2bggvJbvvF2GJ9KAH+oMzP6ffbR9b6bkaatB/D+Y6avfPziwEH/kRi7VC9KU0p7O0shALB6Ad6C+fDpU36IPAZJ5vhAQx6+ReOxPdZV+//SpoLwXFIbt9Td++vzz1QS3E/WEFTd6sgSZLc3I5JsQ2G2rDnusYlfhtf1CQqC8Nv1wrWqg1+gdt/LtMaNp/uYjaArH5uWTl1t5oXXXtvurhnU5ZiVLkZxwEyJkhFT4YOnFqFZXzJU7iDi+Nx9b3gHDV/ZHd5GllG9/qxnodg==";
+function b64bytes(s) { var bin = atob(s), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+async function unlockDeck(pw) {
+  var raw = b64bytes(DECK_B64);
+  var salt = raw.slice(0, 16), iv = raw.slice(16, 28), ct = raw.slice(28);
+  var base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  var key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 200000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ct);
+}
+function openDeck(name) {
+  $("#deckFile").textContent = name || DECK_NAME;
+  $("#deckPw").value = "";
+  $("#deckErr").textContent = "";
+  $("#deckOk").textContent = "OK";
+  $("#deckOk").disabled = false;
+  $("#deckModal").hidden = false;
+  setTimeout(function () { $("#deckPw").focus(); }, 50);
+}
+function closeDeck() { $("#deckModal").hidden = true; $("#deckPw").value = ""; closeDeckView(); }
+$("#deckCancel").addEventListener("click", closeDeck);
+$("#deckModal").addEventListener("click", function (e) { if (e.target === this) closeDeck(); });
+$("#deckPw").addEventListener("keydown", function (e) { if (e.key === "Enter") $("#deckOk").click(); });
+var DECK = null, deckIx = 0;
+function fontFor(f) { return f === "Cambria" ? "Georgia, serif" : "Calibri, Arial, sans-serif"; }
+function renderSlide(i) {
+  var slides = DECK.slides;
+  deckIx = Math.max(0, Math.min(slides.length - 1, i));
+  var s = slides[deckIx], stage = $("#deckStage");
+  stage.textContent = "";
+  stage.style.background = s.bg || "#ffffff";
+  s.shapes.forEach(function (sh) {
+    var d = document.createElement("div");
+    d.className = "deck-shape";
+    d.style.left = sh.x + "%"; d.style.top = sh.y + "%";
+    d.style.width = sh.w + "%"; d.style.height = sh.h + "%";
+    if (sh.fill) d.style.background = sh.fill;
+    if (sh.geom === "ellipse") d.style.borderRadius = "50%";
+    else if (sh.geom === "round") d.style.borderRadius = "12%";
+    d.style.justifyContent = sh.anchor === "ctr" ? "center" : sh.anchor === "b" ? "flex-end" : "flex-start";
+    sh.paras.forEach(function (p) {
+      var pe = document.createElement("div");
+      pe.className = "deck-p";
+      if (p.align === "center") pe.style.textAlign = "center";
+      else if (p.align === "right") pe.style.textAlign = "right";
+      p.runs.forEach(function (r) {
+        var sp = document.createElement("span");
+        sp.textContent = r.t;
+        if (r.size) sp.style.fontSize = (r.size * 100 / 960) + "cqw";
+        if (r.bold) sp.style.fontWeight = "700";
+        if (r.italic) sp.style.fontStyle = "italic";
+        if (r.color) sp.style.color = r.color;
+        sp.style.fontFamily = fontFor(r.font);
+        pe.appendChild(sp);
+      });
+      d.appendChild(pe);
+    });
+    stage.appendChild(d);
+  });
+  $("#deckCount").textContent = (deckIx + 1) + " / " + slides.length;
+  $("#deckPrev").disabled = deckIx === 0;
+  $("#deckNext").disabled = deckIx === slides.length - 1;
+}
+function openDeckView(data) {
+  DECK = data;
+  $("#deckTitleBar").textContent = "The Question Engine";
+  $("#deckModal").hidden = true;
+  $("#deckView").hidden = false;
+  renderSlide(0);
+}
+function closeDeckView() { $("#deckView").hidden = true; }
+$("#deckClose").addEventListener("click", closeDeckView);
+$("#deckPrev").addEventListener("click", function () { if (DECK) renderSlide(deckIx - 1); });
+$("#deckNext").addEventListener("click", function () { if (DECK) renderSlide(deckIx + 1); });
+document.addEventListener("keydown", function (e) {
+  if ($("#deckView").hidden) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { renderSlide(deckIx + 1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { renderSlide(deckIx - 1); e.preventDefault(); }
+  else if (e.key === "Escape") closeDeckView();
+});
+$("#deckOk").addEventListener("click", async function () {
+  var pw = $("#deckPw").value;
+  $("#deckErr").textContent = "";
+  if (!pw) { $("#deckErr").textContent = "Enter the password."; return; }
+  this.disabled = true;
+  try {
+    var bytes = await unlockDeck(pw);
+    openDeckView(JSON.parse(new TextDecoder().decode(bytes)));
+    this.disabled = false;
+    $("#deckPw").value = "";
+  } catch (err) {
+    if (err && err.name === "OperationError") {
+      $("#deckErr").textContent = "That password isn't right.";
+      $("#deckPw").select();
+    } else {
+      $("#deckErr").textContent = "Something went wrong opening the deck.";
+    }
+    this.disabled = false;
+  }
+});
+
+function restart() {
+  S = freshState();
+  S.started = true;
+  DATA.mail = JSON.parse(JSON.stringify(MAILDATA));
+  mailFolder = "inbox";
+  mailIx = 0;
+  $("#mail-read").textContent = "";
+  $(".ol").classList.remove("reading");
+  closeDeck();
+  box("ramona").innerHTML = "";
+  clearChips();
+  openChat();
+  $("#mailDot").hidden = true;
+  renderFolders();
+  renderList();
+  run(TREE.root, S.runId);
+}
+
+$("#back").addEventListener("click", function () {
+  $("#p-chat").classList.remove("open-convo");
+});
+
+renderChatList();
+showTab("chat");
+$("#p-chat").classList.add("no-chat");
+
+/* Ramona's notification arrives straight away and stays until it is tapped. */
+setTimeout(function () {
+  startStory();
+  toast({ title: "Ramona", body: lines(N[TREE.root].text).join(" "), sticky: true, onClick: openChat });
+}, 5000);
+</script>
+</body>
+</html>
